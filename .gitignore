@@ -6,7 +6,7 @@ obj/
 *.suo
 .vs/
 
-# 运行时生成的东西（含用户自己的数据，别提交）
+# 运行时生成的东西（含用户自己的数据）
 cardcomposer/cache/
 cardcomposer/tmp/
 tmp/
@@ -19,7 +19,7 @@ cardcomposer/library/cards.json
 cardcomposer/library/*.json
 !cardcomposer/library/.gitkeep
 
-# 我这边打包用的中间产物
+# 打包/暂存用的中间产物
 .stage-list.json
 
 # skill-library 生成的参考数据（34MB，且是从你自己的游戏包里导出来的 —— 请自己跑一遍生成）
@@ -30,5 +30,5 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
-# 测试用的临时沙箱（跑 test-compose.js 会生成，别提交）
+# 测试用的临时沙箱（跑 test-compose.js 会生成）
 cardforge-sandbox/
