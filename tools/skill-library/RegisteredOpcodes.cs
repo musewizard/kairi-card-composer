@@ -1,0 +1,25 @@
+namespace SkillLibrary;
+
+/// <summary>
+/// Name of the 69-opcode server whitelist, transcribed verbatim from
+/// source/server/internal/multiplayer/battle_engine_player_actions.go :: playerCombatFunctionRegistered.
+/// </summary>
+public static class RegisteredOpcodes
+{
+    public static readonly string[] Names =
+    {
+        "ATTACK_AA", "DEF_UP_FIXED", "ATK_UP_FIXED", "ATK_UP_BY_SELF_PARAM", "DEF_UP_BY_SELF_PARAM",
+        "ATK_BREAK_FIXED", "GUARD_BREAK_FIXED", "ATK_BREAK_BY_SELF_PARAM", "HEAL_FIXED", "HEAL_BY_SELF_PARAM",
+        "DEBUFF_RELEASE_ONE", "DEBUFF_RELEASE_ONE_NUM", "DEBUFF_RELEASE", "DEBUFF_RELEASE_RANDOM", "DEBUFF_RELEASE_OLD",
+        "BUFF_RELEASE", "BUFF_RELEASE_ONE", "BUFF_RELEASE_ONE_NUM", "BUFF_RELEASE_RANDOM", "BUFF_RELEASE_OLD",
+        "ATK_OP_DRAIN", "ATK_OP_DRAIN_ALL", "ATK_OP_REVENGE", "ATK_OP_PIERCING", "ATK_OP_DAMAGE_INCREASE",
+        "ATK_OP_ATTR_RATE_DOWN_INVALID", "ATK_OP_REFLECTION_INVALID", "DEAL_BONUS", "REGENERATE_FIXED", "BURN", "POISON", "FREEZE",
+        "BLEED", "ELECTRIC", "ENCHANT", "ATTR_DEF_DOWN", "ATTR_DEF_UP", "CRITICAL_UP", "CRITICAL_DAMAGE_BOOST", "DAMAGE_UP", "DAMAGE_CUT", "DAMAGE_DOWN",
+        "PARAM_LIMIT_BREAK_FIXED", "WEAKNESS", "REFLECTION", "ENDURE", "COVERING", "BLESS", "CARD_SEAL", "CARD_SEAL_REGIST",
+        "DARKNESS_REGIST", "GUTS", "STAN", "DEAL_PENALTY", "COST_BLOCK", "HP_CUT", "BURST_GAUGE_QUICK_UP", "DOT_VALUE_UP",
+        "ATTACK_BARRIER", "ATTACK_BARRIER_APPOINT_ATTR", "ATTR_SEE", "CARD_TRAP_DAMAGE", "DARKNESS_RANDOM", "BLESS_TURN_UP", "CURSE_RELEASE",
+        "TRANCE_GAUGE_STATE_CHANGE", "TRANCE_GAUGE_VALUE_UP", "TRANCE_GAUGE_VALUE_DOWN", "TRANCE_GAUGE_OVER_HEAT_TURN_ADD"
+    };
+
+    public static readonly HashSet<string> Set = new(Names, StringComparer.Ordinal);
+}

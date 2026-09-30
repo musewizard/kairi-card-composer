@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>卡牌制作 · 效果拼接器</title>
+<style>
+:root{--bg:#14161a;--panel:#1c2027;--panel2:#232932;--line:#323a46;--fg:#e6e9ee;--dim:#93a0b4;
+      --accent:#4b8bf5;--accent2:#2f6ad2;--ok:#3fbf7f;--warn:#e0a94a;--bad:#e4574c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.55 "Microsoft YaHei UI","Segoe UI",sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);
+       border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+header h1{font-size:15px;margin:0;font-weight:600}
+header .info{color:var(--dim);font-size:12px}
+.wrap{display:flex;align-items:flex-start;gap:14px;padding:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.left{width:310px;flex:0 0 310px;position:sticky;top:58px}
+.right{flex:1;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.card>h2{margin:0;padding:9px 12px;font-size:13px;font-weight:600;background:var(--panel2);
+         border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.card .body{padding:12px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.row>label{color:var(--dim);min-width:78px;font-size:12px}
+input,select,textarea,button{font:inherit;color:var(--fg);background:#11141a;border:1px solid var(--line);
+       border-radius:5px;padding:5px 7px}
+input[type=number]{width:92px}
+input.sm{width:66px}
+textarea{width:100%;min-height:52px;resize:vertical;font-family:Consolas,monospace;font-size:12px}
+button{cursor:pointer;background:var(--panel2)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:var(--accent2)}
+button.danger{border-color:#5a2b28;color:#f0a79f}
+button:disabled{opacity:.45;cursor:not-allowed}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{padding:5px 12px}
+.tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;background:var(--panel2);position:sticky;top:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.blk{border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:#181c23}
+.blk>.hd{display:flex;align-items:center;gap:8px;padding:6px 9px;background:#1f242c;
+         border-bottom:1px solid var(--line);border-radius:6px 6px 0 0}
+.blk>.hd b{font-weight:600}
+.blk>.hd .sp{flex:1}
+.blk .bd{padding:9px}
+.blk .desc{color:var(--dim);font-size:12px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+.preview{background:#11141a;border:1px solid var(--line);border-radius:6px;padding:10px;
+         font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;background:#2a3240;color:var(--dim)}
+.badge.ok{background:#1d3a2b;color:#7fe0a8}
+.badge.bad{background:#3d2320;color:#f0a79f}
+.badge.warn{background:#3a3320;color:#e8cf8a}
+.log{background:#0e1013;border:1px solid var(--line);border-radius:6px;padding:9px;max-height:280px;
+     overflow:auto;font-family:Consolas,monospace;font-size:11.5px;white-space:pre-wrap}
+.dim{color:var(--dim)}
+.hint{color:var(--dim);font-size:11.5px}
+.cardlist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.cardlist div{padding:4px 8px;cursor:pointer;border-bottom:1px solid #232932;font-size:12px}
+.cardlist div:hover{background:#232932}
+.cardlist div.on{background:#26406b}
+
+/* --- 缩略图网格（克隆源 / 立绘 选择）--- */
+.thumbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;
+  max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px;background:#11141a}
+.thumbgrid .cell{position:relative;cursor:pointer;border:1px solid #2b3340;border-radius:5px;overflow:hidden;background:#171b21}
+.thumbgrid .cell:hover{border-color:var(--accent)}
+.thumbgrid .cell.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(75,139,245,.45) inset}
+.thumbgrid .cell img{display:block;width:100%;height:78px;object-fit:cover;background:#0d0f12}
+.thumbgrid .cell .cap{font-size:10.5px;line-height:1.25;padding:2px 4px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thumbgrid .cell.on .cap{color:#cfe0ff}
+.thumbgrid .cell .rid{font-size:10px;color:#7f8b9c;padding:0 4px}
+.artpick{display:flex;gap:12px;align-items:flex-start}
+.artpick .prev{width:132px;flex:0 0 132px;text-align:center}
+.artpick .prev img{width:132px;height:132px;object-fit:contain;background:#0d0f12;border:1px solid var(--line);border-radius:6px}
+.artpick .big{width:100%;margin-top:6px;border:1px solid var(--line);border-radius:6px;background:#0d0f12;min-height:60px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;width:min(960px,94vw);max-height:88vh;
+  display:flex;flex-direction:column;overflow:hidden}
+.modal .box>h3{margin:0;padding:11px 14px;font-size:14px;background:var(--panel2);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:10px}
+.modal .box>.body{padding:12px;overflow:auto}
+.modal .box>.foot{padding:10px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;background:#191d24}
+/* --- 当前包标识（点它换包）--- */
+.pkgbox{display:flex;align-items:center;gap:8px;background:#11141a;border:1px solid var(--line);
+  border-radius:6px;padding:3px 10px;cursor:pointer;max-width:46vw}
+.pkgbox:hover{border-color:var(--accent)}
+.pkgbox .lbl{color:var(--dim);font-size:11px}
+.pkgbox .path{font-family:Consolas,monospace;font-size:12px;color:#cfe0ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pkgbox .fp{font-size:10.5px;color:#7f8b9c;background:#1d232c;border-radius:9px;padding:1px 7px}
+.pkgbox.bad{border-color:#6b2f2b}
+.pkgbox.bad .path{color:#f0a79f}
+/* --- 换包对话框 --- */
+.dirlist{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:#11141a}
+.dirlist div{padding:5px 10px;cursor:pointer;border-bottom:1px solid #232932;font-size:12.5px;display:flex;gap:8px;align-items:center}
+.dirlist div:hover{background:#232932}
+.dirlist div.cand{color:#9fe0b8}
+.dirlist .tag{font-size:10.5px;background:#1d3a2b;color:#7fe0a8;border-radius:9px;padding:0 7px}
+.pathbar{font-family:Consolas,monospace;font-size:12px;background:#0e1013;border:1px solid var(--line);
+  border-radius:5px;padding:6px 9px;margin-bottom:8px;word-break:break-all}
+.verdict{font-size:12.5px;padding:7px 10px;border-radius:6px;margin-top:8px}
+.verdict.ok{background:#1d3a2b;color:#9fe0b8}
+.verdict.no{background:#3d2320;color:#f0a79f}
+.chip{display:inline-flex;align-items:center;gap:6px;background:#232932;border:1px solid var(--line);
+      border-radius:14px;padding:2px 10px;font-size:12px}
+.seg{display:flex;gap:0}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:5px 0 0 5px}
+.seg button:last-child{border-radius:0 5px 5px 0}
+.needscroll{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;margin-top:6px}
+.banner{padding:10px 16px;font-size:13px;line-height:1.7;border-bottom:1px solid var(--line)}
+.banner.bad{background:#3a1d1a;color:#ffd9d4;border-bottom-color:#5a2b28}
+.banner.warn{background:#3a311a;color:#ffe9bd;border-bottom-color:#5a4a28}
+.banner code{background:#00000055;padding:1px 5px;border-radius:4px;font-family:Consolas,monospace}
+.banner button{margin-left:8px}
+/* --- 自定义卡面：导入图片 → 按游戏原始尺寸裁剪 --- */
+.cropwrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-top:8px}
+.cropstage{display:block;border:1px solid var(--line);border-radius:6px;background:#0b0d10;
+  cursor:grab;touch-action:none;user-select:none}
+.cropstage.drag{cursor:grabbing}
+.cropstage.empty{cursor:default}
+.cropside{flex:1;min-width:280px}
+.cropprev{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.cropprev .pv{text-align:center}
+.cropprev .pv canvas{display:block;max-width:180px;max-height:180px;border:1px solid var(--line);
+  border-radius:6px;background:#0d0f12}
+.cropprev .pv .cap{font-size:11px;color:var(--dim);margin-top:3px}
+.tlist{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:6px}
+.tlist .tr{display:flex;gap:8px;align-items:center;padding:5px 9px;border-bottom:1px solid #232932;font-size:12px}
+.tlist .tr:last-child{border-bottom:0}
+.tlist .tr .k{width:96px;color:var(--dim)}
+.tlist .tr .sz{width:96px;font-family:Consolas,monospace}
+.tlist .tr .st{flex:1}
+.drop{flex:1;min-width:240px;border:1px dashed var(--line);border-radius:6px;padding:10px;
+  text-align:center;color:var(--dim);font-size:12px}
+.drop.on{border-color:var(--accent);color:#cfe0ff}
+.cropnote{background:#1b2230;border:1px solid #2c3a52;border-radius:6px;padding:8px 10px;margin-top:8px;font-size:12px}
+.cropnote.warn{background:#33291a;border-color:#5a4a28;color:#ffe9bd}
+</style>
+</head>
+<body>
+<div class="banner bad" id="connBanner" style="display:none"></div>
+<header>
+  <h1>卡牌制作 · 效果拼接器</h1>
+  <span class="pkgbox" id="pkgBox" title="点击换服务端包">
+    <span class="lbl">当前包</span>
+    <span class="path" id="pkgPath">加载中…</span>
+    <span class="fp" id="pkgFp"></span>
+  </span>
+  <button id="btnPickPkg" title="打开系统的文件夹选择框，换一个服务端包">📂 换服务端包</button>
+  <button id="btnLibrary" title="写过的卡都存在这里；能载入、能导出文件分享、也能导入别人的">📚 卡牌库</button>
+  <span style="flex:1"></span>
+  <button id="btnHelp">❓ 怎么用</button>
+  <span class="info" id="dirtyInfo"></span>
+  <button id="btnPreview">预览</button>
+  <button id="btnDry" title="跑完整流程但不写盘">干跑</button>
+  <button class="primary" id="btnInject">注入</button>
+</header>
+
+<div class="wrap">
+  <!-- ---------------------------------------------------------------- 左栏 -->
+  <div class="col left">
+    <div class="card">
+      <h2>① 克隆源 / 已有卡 <span class="hint" id="cloneCount"></span></h2>
+      <div class="body">
+        <div class="row">
+          <input id="cardSearch" placeholder="搜卡：卡ID / 名称 / 职业" style="flex:1">
+        </div>
+        <div class="row">
+          <select id="filterJob" style="flex:1">
+            <option value="">全部职业</option><option value="1">佣兵</option>
+            <option value="2">富豪</option><option value="3">盗贼</option><option value="4">歌姬</option>
+          </select>
+          <select id="filterRarity" style="width:150px">
+            <option value="">全部稀有度</option>
+            <option value="EXR">EXR EX稀有</option><option value="MR">MR 百万稀有</option>
+            <option value="UR">UR 究极稀有</option><option value="SR">SR 超稀有</option>
+            <option value="R">R 稀有</option><option value="HN">HN 高级普通</option>
+            <option value="N">N 普通</option><option value="LEGEND">LEGEND 传说</option>
+          </select>
+        </div>
+        <div class="hint" style="margin:2px 0 6px">点缩略图选中一张卡，再点下面「套用」。图就是它的立绘。</div>
+        <div class="thumbgrid" id="cardList"></div>
+        <div class="row" style="margin-top:8px"><span class="hint" id="cloneInfo">未选择</span></div>
+        <div class="row">
+          <button class="primary" id="btnUseClone" style="flex:1">套用这张卡的数值</button>
+        </div>
+        <div class="hint">套用会把 称号/名称/稀有度/职业/费用/白值/上限/立绘/经验表 全部填到右边，之后你可以随意改。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>② 卡牌 ID</h2>
+      <div class="body">
+        <div class="row">
+          <input type="number" id="cardId" style="flex:1">
+          <button id="btnNextId">下一个</button>
+        </div>
+        <div class="hint" id="idHint"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------- 右栏 -->
+  <div class="col right">
+    <div class="card">
+      <h2>③ 壳（全部可手填）<span class="hint" id="shellFrom"></span></h2>
+      <div class="body">
+        <div class="grid4">
+          <label class="dim">称号<input id="crown" style="width:100%"></label>
+          <label class="dim">名称<input id="name" style="width:100%"></label>
+          <label class="dim">稀有度<select id="rarity" style="width:100%"></select></label>
+          <label class="dim">职业<select id="job" style="width:100%">
+            <option value="1">佣兵</option><option value="2">富豪</option>
+            <option value="3">盗贼</option><option value="4">歌姬</option>
+            <option value="0">通用(0)</option></select></label>
+        </div>
+        <div class="grid4" style="margin-top:8px">
+          <label class="dim">费用<input type="number" id="cost" style="width:100%"></label>
+          <label class="dim">等级上限<input type="number" id="levelMax" style="width:100%"></label>
+          <label class="dim">名声上限<input type="number" id="fameMax" style="width:100%"></label>
+          <label class="dim">忠诚上限<input type="number" id="loveMax" style="width:100%"></label>
+        </div>
+        <div class="hint" style="margin:2px 0 4px">
+          白值按「满级」为主：<b>游戏卡面上显示的就是下面这一行（满级值）</b>。
+          Lv1 那行是卡 1 级时的基础值（写进 CSV 的 parameter_initial），名牌/名声加成会自动算。
+        </div>
+        <div class="grid4">
+          <label class="dim">满级 生命 HP<input type="number" id="maxHp" style="width:100%"></label>
+          <label class="dim">满级 攻击 ATK<input type="number" id="maxAtk" style="width:100%"></label>
+          <label class="dim">满级 魔法 MAGIC<input type="number" id="maxMag" style="width:100%"></label>
+          <label class="dim">满级 精神 MIND<input type="number" id="maxMnd" style="width:100%"></label>
+        </div>
+        <div class="grid4" style="margin-top:8px">
+          <label class="dim">Lv1 生命 HP<input type="number" id="initHp" style="width:100%"></label>
+          <label class="dim">Lv1 攻击 ATK<input type="number" id="initAtk" style="width:100%"></label>
+          <label class="dim">Lv1 魔法 MAGIC<input type="number" id="initMag" style="width:100%"></label>
+          <label class="dim">Lv1 精神 MIND<input type="number" id="initMnd" style="width:100%"></label>
+        </div>
+        <div class="hint" id="statHint" style="margin-top:4px"></div>
+        <div class="grid4" style="margin-top:8px">
+          <label class="dim" style="grid-column:span 2">
+            立绘 PictID
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="number" id="pictId" style="flex:1">
+              <button id="btnPickArt" title="从已有卡里挑一张图">选图…</button>
+            </div>
+          </label>
+          <label class="dim">经验表 ID<input type="number" id="expTable" style="width:100%"></label>
+          <label class="dim">高级卡<select id="premium" style="width:100%">
+            <option value="false">否（名声加成 300/200/200/100）</option>
+            <option value="true">是（名声加成 600/400/400/200）</option></select></label>
+        </div>
+        <div class="artpick" style="margin-top:10px">
+          <div class="prev">
+            <img id="artPreview" alt="立绘预览" src="">
+            <div class="hint" id="artCaption">立绘预览</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="hint">卡面立绘来自已有卡的资源。<b>复制已有卡图不用做任何资源工程</b>：
+              点「选图…」挑一张 → PictID 与缩略图都会跟着换。</div>
+            <img class="big" id="artLarge" alt="放大约立绘" src="" style="display:none">
+            <div class="hint" id="artLargeCap"></div>
+            <div class="row" style="margin-top:6px">
+              <label class="dim" style="min-width:auto">卡面来源卡</label>
+              <input id="artCardId" type="number" placeholder="留空=跟克隆源" style="width:130px">
+              <span class="hint">填了就按这张卡的缩略图当卡面（后台目录用）</span>
+            </div>
+            <div class="row" style="margin-top:4px">
+              <button id="btnCustomArt" title="导入你自己的图片，按游戏原始尺寸裁剪后写进卡包">🖼 自定义卡面（导入自己的图片）…</button>
+              <span class="hint" id="customArtState">想把自己的图当卡面，点这个按钮</span>
+            </div>
+          </div>
+        </div>
+        <label class="dim" style="display:block;margin-top:8px">卡牌属性<input id="element" style="width:100%" readonly></label>
+        <div class="preview" style="margin-top:8px" id="derivedPreview">—</div>
+        <div class="hint">Lv1 显示值由服务端按 <code>初始值 + 名声加成 × 名声 ÷ 100</code> 重算，工具自动算好；<b>不要手改</b>。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>③b 台词与配音<span class="hint" id="serifFrom"></span></h2>
+      <div class="body">
+        <label class="dim">台词（卡牌详情里显示的那句话）
+          <textarea id="serifText" rows="3" style="width:100%;margin-top:2px"
+            placeholder="例：听好了亚瑟。战场上被瞧不起就完了。<br>这里要卯足气…"></textarea>
+        </label>
+        <div class="row" style="margin-top:6px">
+          <label class="dim" style="min-width:auto">配音 ID</label>
+          <input id="voiceId" style="width:150px" placeholder="例：600740010">
+          <button id="btnPickVoice">借用别的配音…</button>
+          <button id="btnAuditionVoice" title="听一下官方这句配音">▶ 试听</button>
+          <button id="btnClearVoice" title="官方也有没配音的卡">清空</button>
+          <span class="hint" id="voiceHint"></span>
+        </div>
+        <div class="hint" style="margin-top:4px">
+          台词换行用 <code>&lt;br&gt;</code>；<b>留空＝这张卡没有台词</b>。配音留空＝没配音（官方 8450 张卡里
+          有台词 8134 张、有配音 7474 张，<b>有 848 张有台词但没配音</b>）。
+          配音 ID 是「按角色」的：同一角色的多张卡共用同一个（例：第二型加荷里斯 4 张卡都是 600040010）。
+        </div>
+        <div class="hint" style="margin-top:6px;border-left:3px solid var(--line);padding-left:8px">
+          <b>⚠️ 自定义 / 替换配音音频：未完成，请勿使用。</b> 下面是给想自己动手的人参考的<b>格式要求</b>（工具不替你转码）：<br>
+          · 每句配音 = 一个文件，名字就是 <code>&lt;9位配音ID&gt;.acb</code>（例 <code>600740010.acb</code>），
+          放在 <code>resource-set\resources\cpk\CueSheet_Card_0..21,97,98,99.cpk</code>（或 <code>CueSheet_Legend_0.cpk</code>）里；
+          CPK 是 CRI 容器，文件表是明文（列 DirName/FileName/FileSize/ExtractSize/FileOffset/ID/UserString，无 CRC）。<br>
+          · 那个 <code>.acb</code> 其实是 <b>CRI AWB（AFS2）</b>容器，里面是 <b>一段 CRI HCA</b>：
+          <b>22050 Hz、单声道</b>、2~3 秒（官方就是这样）；<b>HCA 头被混淆</b>
+          （字节 <code>&amp; 0x7F</code> 才是 <code>HCA\0</code> 明文头；音频数据本身没加密）。<br>
+          · 配音 ID 的 9 位 = <code>1位类别</code>+<code>4位角色组</code>+<code>4位槽位</code>（类别 6 = 卡牌语音，cue 名 <code>KN&lt;组&gt;_&lt;槽&gt;</code>）；
+          换完要让客户端重新下载：改 <code>versions.json</code> 的版本号（本机已验证这条链路能生效）。<br>
+          · 建议：拿同角色一句现成配音当模板（工具里 ▶ 试听用的 vgmstream 也能帮你回读验证做出来的对不对），
+          保持同样的采样率/声道/编码最稳。工具这边只负责「借用现成配音 + 试听」，不负责编码。
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>④ 覚醒技（本职业实际效果）<span class="badge ok" id="arthurBadge">—</span></h2>
+      <div class="body">
+        <div class="tabs" id="arthurMode">
+          <button data-mode="custom" class="on">自己拼</button>
+          <button data-mode="clone">沿用克隆源</button>
+          <button data-mode="existing">用现有技能</button>
+        </div>
+        <div class="row" style="margin-bottom:8px">
+          <button id="btnImportSkill" title="拿一张已有卡的技能当底子，数值直接填进效果块">📥 导入已有卡/技能的数值</button>
+          <span class="hint">推荐流程：先在左边套用一张老卡的数值 → 点这里导入它的技能 → 只改你要改的数字</span>
+        </div>
+        <div id="arthurExisting" style="display:none">
+          <div class="row"><label>技能 ID</label><input type="number" id="arthurSkillId"><button id="btnLookup">查</button></div>
+          <div id="arthurExistingInfo" class="hint"></div>
+        </div>
+        <div id="arthurCustom">
+          <div class="grid4">
+            <label class="dim">技能名<input id="arthurName" style="width:100%"></label>
+            <label class="dim">副标题<input id="arthurSub" style="width:100%"></label>
+            <label class="dim">类型<select id="arthurKind" style="width:100%">
+              <option value="SORCERY">魔法攻击</option><option value="ATTACK">物理攻击</option>
+              <option value="SUPPORT">支援</option><option value="DEFENSE">防御</option>
+              <option value="RECOVERY">治疗</option><option value="JAMMING">干扰</option></select></label>
+            <label class="dim" title="一个选择同时决定：卡的属性掩码 + 通常技属性 + 覚醒技属性 + 伤害块的参数。官方双属性卡就是两条技能写同一个双属性串。">属性（可双属性）<select id="arthurElement" style="width:100%"></select></label>
+          </div>
+          <div class="hint" id="elementHint" style="margin:-2px 0 6px"></div>
+          <div class="grid4" style="margin-top:8px">
+            <label class="dim">目标<select id="arthurTarget" style="width:100%">
+              <option value="ENEMY_ONE">敌单体</option><option value="ENEMY_ALL">敌全体</option>
+              <option value="SELF">自身</option><option value="USER_ALL">己方全体</option></select></label>
+            <label class="dim">物理/魔法<select id="arthurDamageKind" style="width:100%">
+              <option value="MAGIC">魔法</option><option value="PHYSICS">物理</option></select></label>
+            <label class="dim">费用<input type="number" id="arthurCost" style="width:100%"></label>
+            <label class="dim">技能类型<select id="arthurJob" style="width:100%"></select></label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="dim" style="flex:1">
+              说明文字（留空=工具按效果块自动生成中文说明）
+              <textarea id="arthurDesc" placeholder="留空即可。导入已有技能时会自动填上原技能的说明（{1} {11} 这些占位符对应各块的数值，游戏会自己算）"></textarea>
+            </label>
+          </div>
+
+          <h3 style="font-size:12.5px;margin:12px 0 6px">效果块（按顺序结算）</h3>
+          <div id="blocks"></div>
+          <button id="btnAddBlock">+ 添加效果块</button>
+
+          <h3 style="font-size:12.5px;margin:14px 0 6px">条件变体 <span class="hint">满足条件时替换掉默认那套效果（这就是单体→全体之类）</span></h3>
+          <div id="variants"></div>
+          <button id="btnAddVariant">+ 添加条件变体</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⑤ 通常技（其他三个职业看到的弱化版）</h2>
+      <div class="body">
+        <div class="row">
+          <label>生成方式</label>
+          <select id="normalMode" style="flex:1">
+            <option value="weaken">自动生成弱化版（推荐）</option>
+            <option value="clone">沿用克隆源</option>
+            <option value="existing">用现有技能 ID</option>
+          </select>
+        </div>
+        <div class="hint">通常技是其他三个职业用这张卡时读的那一套，<b>不能为空</b>。默认自动从覚醒技里
+          <b>只取第 1 段效果块</b>（不管覚醒技拼了几段）再按弱化系数缩小 —— 这样才有"普通技"的感觉；
+          说明文字也会按这一段重新生成，不会照抄覚醒技的说明。</div>
+        <div class="row" id="weakenRow">
+          <label>弱化系数</label>
+          <input type="number" id="weakenScale" value="0.6" step="0.05" min="0.1" max="1" style="width:80px">
+          <span class="hint">按这个比例缩小第 1 段的基数和每级值（官方弱化版大约是觉醒的 30~60%）。
+            想要多段就改用「用现有技能 ID」或克隆源</span>
+        </div>
+        <div class="grid2" id="normalExisting" style="display:none">
+          <label class="dim">技能 ID<input type="number" id="normalSkillId" style="width:100%"></label>
+        </div>
+        <div id="normalPreview" class="preview" style="margin-top:8px">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⑥ 预览 / 结果</h2>
+      <div class="body">
+        <div id="previewBox" class="preview">点右上角「预览」看编译结果。</div>
+        <div id="logBox" class="log" style="margin-top:10px;display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 换算公式（游戏说明里的数字 ↔ CSV 原始参数）由后台把 lib/values.js 原样发过来，
+     保证浏览器和注入器用的是同一份公式 -->
+<script src="/values.js"></script>
+<script>
+// 全部下拉的取值和中文标签都由后台 /api/state 的 choices 提供（见 lib/compose.js choices()），
+// 避免界面里再出现裸英文。下面这些只是后台还没回来时的占位。
+let ELEMENTS = ['FIRE','ICE','WIND','LIGHT','DARK'];
+let ELEM_CN = {FIRE:'火',ICE:'冰',WIND:'风',LIGHT:'光',DARK:'暗'};
+let CHOICES = null;
+let VALUE_SHAPE = {};        // /api/palette 下发：效果的数值参数位置
+// ★ 换算公式由上面的 <script src="/values.js"> 提供（后台把 lib/values.js 原样发过来）。
+//   万一那个脚本没加载成功，就退化成"直接填原始参数"，页面照样能用，不会整页报错。
+const VALUES = (typeof window !== 'undefined' && window.VALUES && typeof window.VALUES.valueAt === 'function')
+  ? window.VALUES : null;
+if (!VALUES) console.warn('values.js 没加载成功：数值换算功能退化为原始参数输入');
+/** 编辑里的「满级值」行：等级上限改了要让它们重算（见 #levelMax 的监听）。 */
+const VALUE_REFRESH = [];
+function refreshValueRows(){
+  for(let i=VALUE_REFRESH.length-1;i>=0;i--){
+    const f = VALUE_REFRESH[i];
+    if(!document.body.contains(f.wrap)){ VALUE_REFRESH.splice(i,1); continue; }
+    f.run();
+  }
+}
+let STATE = { cards: [], palette: [], conditions: [], src: null, draft: null, mode: 'custom', busy: false };
+
+// 界面里显示英文枚举时统一走这两个小工具，保证屏幕上不出现裸英文
+const KIND_CN = { SORCERY: '魔法攻击', ATTACK: '物理攻击', SUPPORT: '支援', DEFENSE: '防御', RECOVERY: '治疗', JAMMING: '干扰' };
+function cnEl(el){ if(!el) return '(空)'; return (ELEM_CN && ELEM_CN[el]) ? ELEM_CN[el] : String(el); }
+function cnElPair(el){ return String(el||'').split('_').map(p=>ELEM_CN[p]||p).join(''); }
+const ROLE_TARGET_CN = { SELF:'自身', FRIEND_ALL:'己方全体', SELECT:'敌方单体', ENEMY_ALL:'敌方全体' };
+const SKILL_TARGET_CN = { ENEMY_ONE:'敌单体', ENEMY_ALL:'敌全体', SELF:'自身', USER_ALL:'己方全体', FRIEND_ALL:'己方全体' };
+function cnRoleTarget(code){ return ROLE_TARGET_CN[code] || code; }
+function cnSkillTarget(code){ return SKILL_TARGET_CN[code] || code; }
+
+function $(id){ return document.getElementById(id); }
+function api(path, opts){
+  return fetch(path, opts).then(async r => {
+    const j = await r.json().catch(()=>({error:'bad json'}));
+    if(!r.ok) throw new Error(j.error || ('HTTP '+r.status));
+    return j;
+  });
+}
+function h(tag, attrs, children){
+  const e = document.createElement(tag);
+  if(attrs) for(const k in attrs){ if(k==='style') e.style.cssText=attrs[k]; else if(k.startsWith('on')) e['on'+k.slice(2)]=attrs[k]; else e.setAttribute(k, attrs[k]); }
+  for(const c of (children||[])) e.append(c.nodeType?c:document.createTextNode(c));
+  return e;
+}
+
+// ------------------------------------------------------------------ boot
+/** 连不上后台时，把原因说清楚 —— 不要只丢一句 "Failed to fetch"。 */
+function showConnProblem(err){
+  const el = $('connBanner');
+  const here = location.href;
+  const isFile = location.protocol === 'file:';
+  const target = 'http://127.0.0.1:' + (location.port || '8788') + '/';
+  el.className = 'banner bad';
+  el.innerHTML = '';
+  const head = isFile
+    ? '这个页面是「直接打开的文件」，不是从后台服务打开的，所以它调不到后台 API。'
+    : '连不上后台服务（' + (err && err.message ? err.message : '网络错误') + '）。';
+  const steps = isFile
+    ? ['关掉这个页面；', '在 tools\\cardcomposer 目录里跑 start.ps1（它会自己开浏览器）；',
+       '或者把地址栏改成 ' + target + ' 再回车。']
+    : ['后台服务多半没在跑（或刚重启过）；', '在 tools\\cardcomposer 目录里跑 start.ps1，等它打印地址；',
+       '然后按 F5 刷新本页。'];
+  el.append(h('div',{style:'font-weight:700'},[head]));
+  const ol = h('ol',{style:'margin:6px 0 6px 22px;padding:0'});
+  for(const s of steps) ol.append(h('li',{},[s]));
+  el.append(ol);
+  el.append(h('div',{class:'hint',style:'opacity:.85'},[
+    '当前地址栏：' + here + '　·　需要的地址：' + target
+  ]));
+  const retry = h('button',{class:'primary',onclick:()=>location.reload()},['重试 / 刷新']);
+  el.append(retry);
+  el.style.display = '';
+}
+function clearConnProblem(){ $('connBanner').style.display = 'none'; }
+
+async function refreshState(){
+  const st = await api('/api/state');
+  clearConnProblem();
+  STATE.state = st;
+  const info = st.packageInfo || {};
+  $('pkgPath').textContent = st.package;
+  $('pkgFp').textContent = info.fingerprint ? ('指纹 ' + info.fingerprint) : '';
+  $('pkgBox').classList.toggle('bad', !info.ok);
+  $('pkgBox').title = (info.ok
+    ? '卡 ' + info.cards + ' 行 / 模板 ' + info.templates + ' 条\ncard.csv sha256 前16位: ' + info.fingerprint +
+      '\n修改时间: ' + (info.cardCsvMtime||'').replace('T',' ').slice(0,19) +
+      (info.deployment && info.deployment.validation_only ? '\n(该包 validation_only=true，只能启动校验)' : '')
+    : '路径不可用: ' + (info.reason||'')) + '\n\n点击换一个包（或点右边的「📂 换服务端包」）';
+  $('cardId').value = st.nextCardId;
+  $('idHint').textContent = '当前最大卡牌 ID = ' + st.maxCardId + '，已自动选好下一个可用 ID。';
+  return st;
+}
+
+/** 把后台给的中文选项铺到各个下拉里（属性、稀有度、职业、技能类型…）。 */
+function applyChoices(c){
+  CHOICES = c;
+  ELEMENTS = c.elements.map(e => e.value);
+  ELEM_CN = Object.assign({}, c.elementCn);
+
+  // 卡属性 / 技能属性：15 个官方合法值（5 单 + 10 双），全部中文
+  const el = $('arthurElement'); el.innerHTML = '';
+  for(const e of c.elements) el.append(h('option',{value:e.value,title:e.example},[e.label]));
+  updElementHint();
+  el.onchange = ()=>{ updElementHint(); markDirty(true); };
+
+  // 稀有度
+  const rar = $('rarity'); rar.innerHTML = '';
+  for(const r of c.rarities) rar.append(h('option',{value:r.rank,title:r.name},[r.label]));
+
+  // 技能类型（= 这个技能限哪个职业用）
+  const jb = $('arthurJob'); jb.innerHTML = '';
+  for(const j of c.jobs) if(j.code) jb.append(h('option',{value:j.name,title:'arthur_type='+j.code},[j.label + ' ' + j.name]));
+  jb.value = 'MERCENARY';
+
+  // 卡列表的稀有度筛选（值是官方缩写 N/HN/R/SR/UR/MR/EXR/LEGEND，和卡列表里的一致）
+  const fr = $('filterRarity');
+  if(fr && fr.dataset.built !== '1'){
+    fr.dataset.built = '1';
+    fr.innerHTML = '<option value="">全部稀有度</option>';
+    for(const r of c.rarities.slice().reverse()) fr.append(h('option',{value:r.code,title:r.name},[r.code + ' ' + r.cn]));
+  }
+}
+/** 属性选择下面那行小字：告诉用户这一选会写到哪几个字段。 */
+function updElementHint(){
+  const sel = $('arthurElement'); const box = $('elementHint');
+  if(!sel || !box || !CHOICES) return;
+  const e = CHOICES.elements.find(x => x.value === sel.value);
+  if(!e){ box.textContent = ''; return; }
+  box.textContent = e.dual
+    ? ('双属性：技能属性写 ' + e.value + '，卡属性掩码 = ' + e.mask + '（两个位或起来）。伤害块参数里的「伤害属性」不用管，工具会自动写同一个串。')
+    : ('单属性：技能属性写 ' + e.value + '，卡属性掩码 = ' + e.mask + '。');
+}
+
+(async function(){
+  try{
+    const st = await refreshState();
+    const pal = await api('/api/palette');
+    STATE.palette = pal.effects;
+    STATE.conditions = pal.conditions;
+    if(pal.valueShapes) VALUE_SHAPE = pal.valueShapes;
+    if(st.choices) applyChoices(st.choices);
+    $('arthurElement').value = ELEMENTS[1] || ELEMENTS[0];
+    const cs = await api('/api/cards');
+    STATE.cards = cs.cards;
+    renderCardList();
+    if(!$('blocks').children.length){ addBlock('attack'); addBlock('draw'); }
+    updArt(); updDerived(); updVoiceHint();
+    markDirty(false);
+    $('cloneInfo').textContent = '未选择克隆源';
+    // 上次没写完的内容？问一句再恢复（用户报「写完一张卡再退出就重头来」）
+    restoreLocalDraft();
+  }catch(e){
+    $('pkgPath').textContent = '加载失败: ' + e.message;
+    $('pkgBox').classList.add('bad');
+    showConnProblem(e);
+  }
+})();
+
+// ------------------------------------------------------------------ 使用说明
+// 注意：这几个绑定不要用 $('x').onclick = ... 直接写，元素万一不在（页面是旧版本）
+// 会抛异常，把后面所有绑定（包括换包按钮）一起带死。
+function bind(id, ev, fn){ const el = $(id); if(el) el['on'+ev] = fn; else console.warn('missing element: ' + id); }
+
+bind('btnHelp','click',()=>{
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box',style:'width:760px'});
+  box.append(h('h3',{},['怎么用（照顺序做就行）']));
+  const body = h('div',{class:'body'});
+  const steps = [
+    ['① 左边选一张已有的卡当底子',
+     '缩略图直接点，不用记卡号（上面能搜卡ID / 名称 / 职业，也能按职业和稀有度筛）。选中后点「套用这张卡的数值」，称号/名字/稀有度/职业/费用/白值/上限/立绘/经验表全部带进来 —— 带完还能随便改。不想用现成的，全部手填也行。'],
+    ['② 填卡牌 ID 和名字',
+     'ID 已经自动填好下一个能用的号，一般不用动。名字就是游戏里显示的名字，称号是名字前面那个 【】。'],
+    ['③ 职业 / 属性 / 费用 / 白值',
+     '这几个就是「这张卡是谁用的、什么属性、几费、多少血多少攻」。填的值会同时写进主表，工具会自己算派生字段（算错服务端会拒绝启动，所以它写完会自检）。'],
+    ['④ 拼覚醒技（这个才是这张卡的真正效果）',
+     '每一块选三样：作用对象（敌单体/敌全体/自己/己方全体）+ 效果（伤害/治疗/加攻/抽牌/减伤…）+ 这个效果要的参数。中文说明会自己写出来，不用你打。'],
+    ['⑤ 条件变体（比如"3连携以上改成打全体"）',
+     '点「添加条件变体」：选一个条件（不能瞎填，只列服务端认的）+ 选变体打谁 + 单独填它自己的效果。引擎会先筛条件、再取优先度最高的那套。'],
+    ['⑥ 台词与配音（③b）',
+     '台词就是卡牌详情里显示的那句话，换行直接按回车（工具会转成游戏用的 <br>）；留空＝没有台词。' +
+     '配音填的是官方的「配音 ID」——点「借用别的配音…」可以按卡名/台词搜一个现成的；留空＝没配音（官方也有 848 张卡是有台词没配音的）。'],
+    ['⑦ 通常技（其他三个职业看到的那份）',
+     '默认「自动弱化」就行：工具会照覚醒技生成一份弱化的。也可以自己拼。'],
+    ['⑧ 干跑 → 注入 → 重启服务端',
+     '右上「干跑」= 把全部检查跑一遍但一个字节都不写，先看日志对不对。确认了再点「注入」（会真的改包 + 重建客户端资源 + 重签）。最后重启服务端才生效。'],
+    ['📚 卡牌库（写过的卡不会再丢）',
+     '每注入成功一张卡会自动存进卡牌库；平时编辑的内容也会自动记住，刷新或重开工具会问你要不要恢复。' +
+     '卡牌库里可以「载入」回表单继续改、「导出全部/勾选的」成一个 json 文件发给别人、别人用「导入别人的文件…」就能用（同一个文件重复导入会自动认出来，不会堆两份）。' +
+     '库文件就在 tools\\cardcomposer\\library\\cards.json，直接拷走也是备份。'],
+    ['换服务端包 / 找不到文件夹怎么办',
+     '点顶栏左边那个显示「当前包」的方块 → 弹窗第一行就是「📂 浏览文件夹…」，点了会在这台电脑上弹出系统的文件夹窗口，进到包目录里（能看到 resource-set 的那一层）点「选择文件夹」就行。下面也保留了目录浏览和手动粘贴路径两种办法。']
+  ];
+  for(const [t,d] of steps){
+    body.append(h('div',{style:'margin:10px 0'},[
+      h('div',{style:'font-weight:700'},[t]),
+      h('div',{class:'hint',style:'margin-top:2px;line-height:1.6'},[d])
+    ]));
+  }
+  body.append(h('div',{class:'hint',style:'margin-top:12px;padding-top:8px;border-top:1px solid var(--line)'},[
+    '当前正在改的包就是顶栏显示的那个；「注入」是直接改它，所以注入前先用干跑看一眼日志。'
+  ]));
+  box.append(body);
+  const foot = h('div',{class:'foot'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  foot.append(h('button',{class:'primary',onclick:close},['知道了']));
+  box.append(foot);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+});
+
+// ------------------------------------------------------------------ 台词 / 配音（card.csv 第 67 / 82 列）
+let VOICES = null;
+async function loadVoices(){
+  if(!VOICES){ try{ VOICES = (await api('/api/voices')).voices || []; }catch(e){ VOICES = []; } }
+  return VOICES;
+}
+function updVoiceHint(){
+  const el = $('voiceHint'); if(!el) return;
+  const v = ($('voiceId').value||'').trim();
+  if(!v){ el.textContent = '留空＝这张卡没有配音'; return; }
+  if(!VOICES){ el.textContent = '查…'; loadVoices().then(updVoiceHint); return; }
+  const hit = VOICES.find(x=>x.voiceId===v);
+  if(!/^[0-9]+$/.test(v)){ el.textContent = '⚠ 配音 ID 得是数字（官方表里有 16 张卡把台词填进了这一列，是错的，别抄）'; return; }
+  el.textContent = hit ? ('官方有 ' + hit.cards + ' 张卡在用（例：' + hit.sample + '）')
+                       : '官方表里没这个 ID（手填/别人分享的都行，只要客户端里有这段音）';
+}
+bind('voiceId','input',updVoiceHint);
+bind('btnClearVoice','click',()=>{ $('voiceId').value=''; updVoiceHint(); });
+// ---- 试听：把官方配音解码成 wav 放出来（只读，不改包；解码器 tools\vgmstream）
+const voiceAudio = h('audio',{style:'display:none'});
+document.body.append(voiceAudio);
+function auditionVoice(id){
+  const v = String(id||'').replace(/[^0-9]/g,'');
+  if(!v){ alert('先填/选一个配音 ID'); return; }
+  voiceAudio.src = '/api/voice-audio/' + v + '?t=' + Date.now();
+  // play() 可能同步抛（老浏览器/测试桩），也可能返回被拒绝的 Promise（解码器缺失时后台给的是 JSON）
+  const onFail = async ()=>{
+    try{
+      const r = await fetch('/api/voice-audio/' + v + '?t=' + Date.now());
+      const t = await r.text();
+      let j = null; try{ j = JSON.parse(t); }catch(e){}
+      alert(j && j.error ? j.error : '试听失败（HTTP ' + r.status + '）');
+    }catch(e){ alert('试听失败: ' + e.message); }
+  };
+  try{
+    const pr = voiceAudio.play();
+    if(pr && typeof pr.catch === 'function') pr.catch(onFail);
+  }catch(e){ onFail(); }
+}
+bind('btnAuditionVoice','click',()=>auditionVoice($('voiceId').value));
+bind('btnPickVoice','click',async()=>{
+  const list = await loadVoices();
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box',style:'width:820px'});
+  const withAudio = list.filter(v=>v.hasAudio).length, freeN = list.filter(v=>v.cards===0 && v.hasAudio).length;
+  box.append(h('h3',{},['借用官方配音（' + list.length + ' 个 ID，其中 ' + withAudio + ' 个包里有音频，' + freeN + ' 个是没人用过的空闲档）']));
+  const body = h('div',{class:'body'});
+  body.append(h('div',{class:'hint'},['说明：配音是**按角色**录的，「配音 ID」= 9 位数字（类别+角色组+槽位）。' +
+    '借一个 ID 不会改动官方任何卡；标「空闲」的是**没有任何官方卡在用**的槽（同一个角色的其它台词），借来最放心。' +
+    '每行都能点 ▶ 试听（需要 tools\\vgmstream，工具会自己解码）。']));
+  const filter = h('input',{placeholder:'搜：配音 ID / 卡名 / 台词…（也可以直接搜「空闲」）',style:'width:100%'});
+  const host = h('div',{style:'max-height:50vh;overflow:auto;margin-top:8px'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  function render(){
+    const q = filter.value.trim().toLowerCase();
+    host.innerHTML = '';
+    const rows = list.filter(v=>{
+      if(!q) return true;
+      if(v.voiceId.includes(q)) return true;
+      if(q.includes('空闲') && v.cards===0 && v.hasAudio) return true;
+      return (v.sample||'').toLowerCase().includes(q) || (v.sampleSerif||'').toLowerCase().includes(q);
+    });
+    const shown = rows.slice(0,300);
+    for(const v of shown){
+      const tag = !v.hasAudio ? '⚠ 包里没这段音'
+        : (v.cards===0 ? '空闲（没有卡在用）' : (v.cards + ' 张卡在用 · 例：' + v.sample));
+      const row = h('div',{class:'row',style:'border-bottom:1px solid var(--line);padding:6px 0;gap:6px'},[
+        h('b',{style:'min-width:104px;display:inline-block'},[v.voiceId]),
+        h('span',{class:'hint',style:'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+          [tag + '　' + String(v.sampleSerif||'').replace(/<br>/g,' ').slice(0,34)])
+      ]);
+      if(v.hasAudio){
+        const play = h('button',{title:'试听'},['▶']);
+        play.onclick = (ev)=>{ if(ev && ev.stopPropagation) ev.stopPropagation(); auditionVoice(v.voiceId); };
+        row.append(play);
+      }
+      const use = h('button',{class:'primary'},['用这个']);
+      use.onclick = (ev)=>{ if(ev && ev.stopPropagation) ev.stopPropagation(); $('voiceId').value = v.voiceId; updVoiceHint(); close(); };
+      row.append(use);
+      row.onclick = ()=>{ $('voiceId').value = v.voiceId; updVoiceHint(); close(); };
+      host.append(row);
+    }
+    host.append(h('div',{class:'hint',style:'margin-top:6px'},['匹配 ' + rows.length + ' 个，只列了前 300 个（用上面的搜索框缩小范围）。']));
+  }
+  filter.oninput = render; render();
+  body.append(filter, host);
+  box.append(body);
+  const foot = h('div',{class:'foot'});
+  foot.append(h('button',{onclick:close},['关闭']));
+  box.append(foot);
+  modal.append(box); modal.onclick=(e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+});
+
+// ------------------------------------------------------------------ 换服务端包
+bind('pkgBox','click',openPkgPicker);
+bind('btnPickPkg','click',openPkgPicker);
+let BROWSE = null;
+async function openPkgPicker(){
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box'});
+  const hd = h('h3',{},['选择服务端包']);
+  hd.append(h('span',{style:'flex:1'}));
+  hd.append(h('span',{class:'hint'},['只有带 resource-set\\_local\\control\\server 的目录才是候选（绿色）']));
+  box.append(hd);
+  const body = h('div',{class:'body'});
+  const pathbar = h('div',{class:'pathbar'},['…']);
+  body.append(pathbar);
+
+  // ---- 最主要的入口：系统的文件夹选择框
+  const pickRow = h('div',{class:'row'});
+  const pickBtn = h('button',{class:'primary',style:'flex:1;padding:9px'},['📂 浏览文件夹…（打开系统选择框）']);
+  pickRow.append(pickBtn);
+  body.append(pickRow);
+  const pickHint = h('div',{class:'hint'},['会在这台电脑上弹出一个真正的文件夹窗口，像资源管理器一样找到服务端包目录，进去之后点右下角「选择文件夹」。']);
+  body.append(pickHint);
+  // 真正的系统文件夹选择框（服务端在那台机器上，窗口就弹在那台机器上）
+  pickBtn.onclick = async ()=>{
+    const label = pickBtn.textContent;
+    pickBtn.disabled = true;
+    pickBtn.textContent = '⏳ 请在弹出的文件夹窗口里选择…';
+    pickHint.textContent = '窗口已经打开了 —— 请到电脑上找到服务端包目录，进去（能看到 resource-set 那一层）之后点「选择此文件夹」。这一步必须在电脑上手动完成。';
+    try{
+      const start = (current && current.indexOf(':') > 0) ? current
+        : ((manual.value && manual.value.indexOf(':') > 0) ? manual.value.trim() : 'D:\\');
+      const r = await api('/api/package/pick', {method:'POST',
+        headers:{'Content-Type':'application/json'}, body: JSON.stringify({start})});
+      if(r && r.ok){
+        await api('/api/package/select', {method:'POST',
+          headers:{'Content-Type':'application/json'}, body: JSON.stringify({path:r.path})});
+        close();
+        await reloadEverything();
+        return;
+      }
+      if(r && r.cancelled){
+        pickHint.textContent = '已取消，没有换包（现在用的还是原来那个）。';
+      }else{
+        const msg = (r && r.error) ? r.error : '没有得到路径';
+        pickHint.textContent = '没能用这个文件夹：' + msg;
+        if(r && r.path){
+          // 选到了东西但不是包 —— 直接把路径填进去，让下面的检查按钮给出结论
+          manual.value = r.path;
+          await go(r.path).catch(()=>{});
+        }
+      }
+    }catch(e){
+      pickHint.textContent = '打开文件夹窗口失败：' + e.message +
+        '（如果这台电脑上确实弹不出窗口，可以手动粘贴路径，或用下面的目录浏览）';
+    }finally{
+      pickBtn.disabled = false;
+      pickBtn.textContent = label;
+    }
+  };
+
+  body.append(h('div',{class:'hint',style:'margin:12px 0 6px'},['或者直接输入 / 从下面目录树里点：']));
+  const row = h('div',{class:'row'});
+  const manual = h('input',{placeholder:'直接粘贴完整路径，例如 D:\\...\\mod\\kairisei-ma-cn602-server',style:'flex:1'});
+  row.append(manual);
+  row.append(h('button',{onclick:()=>go(manual.value.trim())},['打开']));
+  body.append(row);
+
+  // ---- 已经见过的包（从保存的配置 + 猜几个常见位置）
+  const quick = h('div',{class:'dirlist',style:'max-height:110px;margin-bottom:8px'});
+  body.append(h('div',{class:'hint',style:'margin:10px 0 4px'},['最近用过 / 可能的位置（点一下直接检查）：']));
+  const guesses = [];
+  let apiDead = null;
+  try { const st = await api('/api/state'); if (st.package) guesses.push(st.package); } catch(e){ apiDead = e; }
+  try {
+    const cfg = await api('/api/package/check?path=' + encodeURIComponent('<游戏包目录>'));
+    if (cfg.ok) guesses.push(cfg.root);
+  } catch(e){ apiDead = apiDead || e; }
+  for (const g of [...new Set(guesses)]) {
+    quick.append(h('div',{onclick:()=>go(g)},['📦 ' + g]));
+  }
+  if (![...new Set(guesses)].length) quick.append(h('div',{class:'hint',style:'padding:8px'},['（还没有记录）']));
+  body.append(quick);
+
+  const dirlist = h('div',{class:'dirlist'});
+  body.append(h('div',{class:'hint',style:'margin:6px 0 4px'},['目录浏览（绿色的目录「像是个包」）：']));
+  body.append(dirlist);
+  const verdict = h('div',{class:'verdict'});
+  body.append(verdict);
+  box.append(body);
+  const foot = h('div',{class:'foot'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  foot.append(h('button',{onclick:close},['取消']));
+  const useBtn = h('button',{class:'primary',disabled:'disabled'},['使用这个包']);
+  foot.append(useBtn);
+  box.append(foot);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+  if (apiDead) {
+    verdict.className = 'verdict no';
+    verdict.textContent = '连不上后台服务（' + apiDead.message + '）—— 下面的检查都会失败。' +
+      '请先跑 start.ps1，再按 F5 刷新本页；系统文件夹选择框同样需要后台在跑。';
+    showConnProblem(apiDead);
+  }
+
+  let current = null;
+  async function go(p){
+    try{
+      const r = await api('/api/package/browse?path=' + encodeURIComponent(p || 'D:\\'));
+      if(!r.ok){ verdict.className='verdict no'; verdict.textContent = r.error; return; }
+      BROWSE = r; current = r.path;
+      pathbar.textContent = r.path;
+      manual.value = r.path;
+      dirlist.innerHTML = '';
+      if(r.parent){
+        const up = h('div',{onclick:()=>go(r.parent)},['⬆ ..  上一级']);
+        dirlist.append(up);
+      }
+      for(const d of r.dirs){
+        const el = h('div',{class:d.candidate?'cand':'', onclick:()=>go(d.path)},[ '📁 ' + d.name]);
+        if(d.candidate) el.append(h('span',{class:'tag'},['像是个包']));
+        dirlist.append(el);
+      }
+      if(!r.dirs.length && !r.parent) dirlist.append(h('div',{class:'hint',style:'padding:10px'},['（没有子目录）']));
+      await check(r.path);
+    }catch(e){ verdict.className='verdict no'; verdict.textContent = '打不开: ' + e.message; }
+  }
+  async function check(p){
+    const info = await api('/api/package/check?path=' + encodeURIComponent(p));
+    if(info.ok){
+      verdict.className = 'verdict ok';
+      verdict.textContent = '✓ 可用。卡牌 ' + info.cards + ' 行 · 模板 ' + info.templates + ' 条 · container.dat ' +
+        info.containerBytes + ' 字节 · card.csv 指纹 ' + info.fingerprint +
+        (info.deployment && info.deployment.validation_only ? ' · （validation_only：只能启动校验）' : '');
+      useBtn.disabled = false;
+      useBtn.onclick = async ()=>{
+        try{
+          await api('/api/package/select', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path:p})});
+          close();
+          await reloadEverything();
+        }catch(e){ alert('切换失败: ' + e.message); }
+      };
+    }else{
+      verdict.className = 'verdict no';
+      verdict.textContent = '✗ 这个目录不能用作包：' + info.reason;
+      useBtn.disabled = true;
+    }
+  }
+  // start from the package currently in use
+  const startDir = ($('pkgPath').textContent && $('pkgPath').textContent.indexOf(':') > 0)
+    ? $('pkgPath').textContent : 'D:\\';
+  go(startDir);
+  manual.focus();
+}
+
+/** After switching packages, reload palette + card list and clear the draft. */
+async function reloadEverything(){
+  STATE.src = null; picked = null; ART = null;
+  $('cardSearch').value=''; $('filterJob').value=''; $('filterRarity').value='';
+  $('blocks').innerHTML=''; $('variants').innerHTML='';
+  addBlock('attack'); addBlock('draw');
+  $('shellFrom').textContent=''; $('arthurBadge').textContent='—';
+  $('previewBox').textContent='已换包，请重新「套用」克隆源或重新填写。';
+  $('logBox').textContent='';
+  const st = await refreshState();
+  const pal = await api('/api/palette');
+  STATE.palette = pal.effects; STATE.conditions = pal.conditions;
+  const cs = await api('/api/cards');
+  STATE.cards = cs.cards;
+  renderCardList();
+  updArt(); updDerived();
+  markDirty(false);
+}
+
+// ------------------------------------------------------------------ clone picker (thumbnail grid)
+function renderCardList(){
+  const q = $('cardSearch').value.trim().toLowerCase();
+  const fj = $('filterJob').value, fr = $('filterRarity').value;
+  const list = $('cardList');
+  list.innerHTML = '';
+  const all = STATE.cards.filter(c=>c.hasTemplate);
+  const shown = all.filter(c=>{
+    if(fj && String(c.jobCode) !== fj) return false;
+    if(fr && c.rarity !== fr) return false;
+    if(!q) return true;
+    return String(c.id).includes(q) || (c.crown+c.name).toLowerCase().includes(q) || (c.job||'').includes(q);
+  });
+  $('cloneCount').textContent = '共 ' + all.length + ' 张，匹配 ' + shown.length + (shown.length>300?'（显示前 300）':'');
+  for(const c of shown.slice(0, 300)){
+    const cell = h('div',{class:'cell'+(STATE.src && STATE.src.id===c.id?' on':''),
+      title:c.id+' '+(c.crown||'')+(c.name||''), onclick:()=>pickCard(c)});
+    cell.append(h('img',{loading:'lazy', src:'/thumb/'+c.id, alt:''}));
+    cell.append(h('div',{class:'cap'},[(c.crown||'')+(c.name||'')]));
+    cell.append(h('div',{class:'rid'},[String(c.id)+' · '+c.rarity+' · '+c.job]));
+    list.append(cell);
+  }
+  if(!shown.length) list.append(h('div',{class:'hint',style:'padding:10px'},['没有匹配的卡']));
+}
+['cardSearch','filterJob','filterRarity'].forEach(id=>$(id).addEventListener('input', renderCardList));
+
+let picked = null;
+function pickCard(c){
+  picked = c;
+  renderCardList();
+  $('cloneInfo').textContent = '已选: ' + c.id + ' ' + (c.crown||'') + (c.name||'') + ' (' + c.rarity + ' · ' + c.job + ')  → 点「套用」填入';
+}
+$('btnUseClone').onclick = async ()=>{
+  if(!picked) return alert('先在列表里点一张卡');
+  const src = await api('/api/clone?id=' + picked.id);
+  STATE.src = src;
+  $('crown').value = src.crown; $('name').value = src.name;
+  $('rarity').value = src.rarityRank; $('job').value = src.arthurType;
+  $('cost').value = src.cost; $('levelMax').value = src.levelMax;
+  $('fameMax').value = src.fameMax; $('loveMax').value = src.loveMax;
+  $('initHp').value = src.parameterInitial.hp; $('initAtk').value = src.parameterInitial.attack;
+  $('initMag').value = src.parameterInitial.magic; $('initMnd').value = src.parameterInitial.mind;
+  $('maxHp').value = src.parameterMaximum.hp; $('maxAtk').value = src.parameterMaximum.attack;
+  $('maxMag').value = src.parameterMaximum.magic; $('maxMnd').value = src.parameterMaximum.mind;
+  $('pictId').value = src.pictId; $('expTable').value = src.experienceTableId;
+  $('premium').value = String(!!src.premiumRarity);
+  $('artCardId').value = String(src.id);
+  // 台词/配音也带进来（第 67 / 82 列）；用户看得到、能改、能清空
+  // 台词在库里存的是 <br>，输入框里显示成真换行（更好读），送回去时再转回来
+  $('serifText').value = String(src.serif || '').replace(/<br\s*\/?>/gi, '\n');
+  $('voiceId').value = src.voiceId || '';
+  updVoiceHint();
+  $('serifFrom').textContent = '已从 ' + src.id + ' 带入（可改可清空）';
+  // 属性也跟着克隆源走（双属性卡会带出「火冰」这种，选项里有）
+  if(src.element){
+    const opts = [...$('arthurElement').options].map(o=>o.value);
+    if(opts.includes(src.element)) $('arthurElement').value = src.element;
+    updElementHint();
+  }
+  updArt();
+  $('shellFrom').textContent = '已从 ' + src.id + ' 带入（可随意改）';
+  markDirty(true);
+};
+
+$('btnNextId').onclick = async ()=>{ const st = await api('/api/state'); $('cardId').value = st.nextCardId; markDirty(true); };
+// 等级上限改了 → 各效果块的「满级值」跟着重算（原始参数不变）
+$('levelMax').addEventListener('change', ()=>{ refreshValueRows(); markDirty(true); });
+
+// ------------------------------------------------------------------ 立绘选择器
+// Picking art is just copying an existing card's PictID + thumbnail, so browsing by
+// thumbnail is the whole feature -- no resource authoring involved.
+let ART = null;   // cached { cards: [...] }
+async function openArtPicker(){
+  if(!ART){
+    $('artCaption').textContent = '载入立绘列表…';
+    try { ART = await api('/api/art-list'); }
+    catch(e){ alert('立绘列表载入失败: ' + e.message); return; }
+  }
+  showArtModal(ART.cards);
+}
+function showArtModal(cards){
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box'});
+  const hd = h('h3',{},['选择立绘']);
+  hd.append(h('span',{class:'hint'},['共 ' + cards.length + ' 张有图；放大立绘 ' + (ART.largeCount||0) + ' 个']));
+  hd.append(h('span',{style:'flex:1'}));
+  const search = h('input',{placeholder:'搜名称 / PictID',style:'width:220px'});
+  hd.append(search);
+  box.append(hd);
+  const body = h('div',{class:'body'});
+  const grid = h('div',{class:'thumbgrid'});
+  const curPict = String($('pictId').value || '');
+  const draw = (q)=>{
+    grid.innerHTML='';
+    const list = cards.filter(c=>!q || String(c.pictId).includes(q) || String(c.id).includes(q) || c.name.toLowerCase().includes(q));
+    for(const c of list.slice(0, 600)){
+      const cell = h('div',{class:'cell'+(String(c.pictId)===curPict?' on':''), title:c.name+'  PictID '+c.pictId,
+        onclick:()=>{ $('pictId').value = c.pictId; $('artCardId').value = c.id; updArt(); markDirty(true); close(); }});
+      cell.append(h('img',{loading:'lazy', src:'/thumb/'+c.id, alt:''}));
+      cell.append(h('div',{class:'cap'},[c.name]));
+      cell.append(h('div',{class:'rid'},['PictID '+c.pictId+(c.hasLarge?' · 有放大图':'')]));
+      grid.append(cell);
+    }
+    if(!list.length) grid.append(h('div',{class:'hint',style:'padding:10px'},['没有匹配']));
+  };
+  search.oninput = ()=>draw(search.value.trim().toLowerCase());
+  draw('');
+  body.append(grid);
+  box.append(body);
+  const foot = h('div',{class:'foot'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  foot.append(h('button',{onclick:close},['取消']));
+  box.append(foot);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+  search.focus();
+}
+$('btnPickArt').onclick = openArtPicker;
+
+function updArt(){
+  const pict = ($('pictId').value||'').trim();
+  if(!pict){ $('artPreview').removeAttribute('src'); $('artCaption').textContent='未填 PictID'; $('artLarge').style.display='none'; return; }
+  // the card thumbnail (that is what the admin catalog uses)
+  const artCard = String($('artCardId').value||'').trim() || (STATE.src ? STATE.src.id : '');
+  // ART_VERSION 在「自定义卡面写入成功」后变化 → 让浏览器重新拉图，不然看到的是缓存里的老图
+  const bust = ART_VERSION ? ('?t=' + ART_VERSION) : '';
+  $('artPreview').src = artCard ? ('/thumb/'+artCard + bust) : ('/art/'+pict + bust);
+  $('artCaption').textContent = artCard ? ('卡面缩略图 (来自卡 '+artCard+')') : 'PictID '+pict;
+  // the enlarged art, if this PictID has one
+  const large = new Image();
+  large.onload = ()=>{ $('artLarge').src = large.src; $('artLarge').style.display=''; $('artLargeCap').textContent='放大立绘 chr51_'+pict+'.png'; };
+  large.onerror = ()=>{ $('artLarge').style.display='none'; $('artLargeCap').textContent='这个 PictID 没有放大立绘（不影响卡面）'; };
+  large.src = '/art/'+pict + bust;
+}
+$('pictId').addEventListener('input', updArt);
+$('artCardId').addEventListener('input', updArt);
+
+// ------------------------------------------------------------------ 自定义卡面
+// 游戏里的卡面 = 三张图：chr10 卡面大图(512×512)、chr20 小图/图标(256×256)、
+// chr51 放大立绘(独立 PNG 文件)。前两张在 bundle 里，CN 加密包改不了，
+// 所以 server 会给出「整套都能改」的 PictID 候选，并且告诉你现在有哪张卡在用它
+// （换 ID 等于把那张卡的图换掉 —— 必须先让用户看见）。
+// 图片全在浏览器里裁好、缩放到和原图**一模一样**的尺寸再传上去，服务器不做缩放。
+let ART_VERSION = 0;
+const ART_KEY_CN = { chr10: '卡面大图', chr20: '卡面小图', chr51: '放大立绘' };
+function artKeyCn(k){ return ART_KEY_CN[k] || k; }
+function gcdInt(a, b){ a = Math.abs(a); b = Math.abs(b); while(b){ const t = a % b; a = b; b = t; } return a || 1; }
+function b64FromBytes(u8){
+  let s = ''; const CH = 0x8000;
+  for(let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+  return btoa(s);
+}
+
+function openCustomArt(){
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box',style:'width:1020px'});
+  box.append(h('h3',{},['🖼 自定义卡面（导入自己的图片）']));
+  const body = h('div',{class:'body'});
+  const foot = h('div',{class:'foot'});
+  box.append(body, foot);
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target === modal) close(); };
+  document.body.append(modal);
+  foot.append(h('button',{onclick:close},['取消']));
+  const dryBtn = h('button',{},['干跑（不写盘）']);
+  const applyBtn = h('button',{class:'primary'},['裁剪并写入卡包']);
+  foot.append(dryBtn, applyBtn);
+
+  // ---------------- 状态 ----------------
+  let pictId = ($('pictId').value || '').trim();
+  let info = null;                       // /api/art/targets 的结果
+  let img = null;                        // 已载入的图片
+  let view = { s: 1, ox: 0, oy: 0 };     // 图片在裁剪框里的位置/缩放
+  let ratio = { w: 1, h: 1 };            // 裁剪比例（整数比）
+  let cropScale = 0.9;                   // 裁剪框占舞台的比例
+  let pvNodes = [];
+  let candCache = null;
+  const STAGE = { W: 520, H: 400 };
+  const editableTargets = ()=> (info ? info.targets.filter(t=>t.editable && t.width && t.height) : []);
+
+  // ---------------- ① 卡面 ID ----------------
+  const idInp = h('input',{type:'number',style:'width:150px'});
+  idInp.value = pictId;
+  const idBtn = h('button',{class:'primary'},['检测']);
+  const idRow = h('div',{class:'row'});
+  idRow.append(h('label',{},['卡面 ID']), idInp, idBtn,
+    h('span',{class:'hint'},['就是左边「立绘 PictID」那个数字；在这里改了，那边也会跟着改']));
+  body.append(idRow);
+  const idOut = h('div',{});
+  body.append(idOut);
+  const candHost = h('div',{});
+  body.append(candHost);
+
+  body.append(h('div',{class:'cropnote'},[
+    h('div',{style:'font-weight:700'},['关于 Live2D 动态卡面（重要，先看这里）']),
+    h('div',{},['游戏里 **180 张卡**的卡面是 Live2D 动态的（MMR/EXR 里的少数，比如「连理之魔法姬制压型艾妮多」），' +
+      '模型在 `card/ext/card_<卡号>_ext.dat` 里。动态卡面开着的时候，游戏显示的是**动的模型**，' +
+      '你换的静态图 chr10 看不到。']),
+    h('div',{},['两个出路：① 换成**没有 Live2D** 的卡面 ID（下面候选列表会标出来，标了「无动态」的最稳）；' +
+      '② 用下面的按钮把**这张卡的 Live2D 关掉**，它就回退成静态图 —— 可随时恢复。']),
+  ]));
+  // ★ 新建一个「全新的卡面 ID」：自己造明文包 + 登记进客户端目录，完全不碰任何现有卡
+  const newHost = h('div',{class:'cropnote',style:'margin-top:8px'});
+  newHost.append(h('div',{style:'font-weight:700'},['🆕 用一个全新的卡面 ID（不碰任何现有卡）']));
+  newHost.append(h('div',{},['不想借别人的图，也不想动任何现成卡？点下面这个按钮：工具会' +
+    '**凭空造一个明文卡面包**（里面就是你的 chr10 卡面大图 / chr20 小图 + chr51 放大立绘），' +
+    '把它登记进客户端目录（version.dat + asset-map.json），然后给你一个新的卡面 ID。']));
+  const newBtnRow = h('div',{class:'row',style:'margin-top:6px'});
+  const newBtn = h('button',{class:'primary'},['🆕 新建卡面 ID 并用这张图']);
+  const newLbl = h('span',{class:'hint'},['还没查下一个可用 ID']);
+  const delBtn = h('button',{class:'danger'},['🗑 删掉我建的卡面 ID…']);
+  newBtnRow.append(newBtn, delBtn, newLbl);
+  newHost.append(newBtnRow);
+  const newOut = h('div',{});
+  newHost.append(newOut);
+  body.append(newHost);
+  delBtn.onclick = async ()=>{
+    const v = prompt('要删掉哪个「自己新建的」卡面 ID？\n（只能删 99990001 以上、而且没有任何卡在用的；官方卡面一律不动）', '');
+    if(!v) return;
+    const id = Number(String(v).trim());
+    if(!id){ alert('要给个数字'); return; }
+    if(!confirm('确认删掉卡面 ID ' + id + '？\n· 它的两个包和放大立绘会挪到 _local\\newpict-removed\\\n' +
+      '· 从 version.dat 和 asset-map 里摘掉\n· 有卡在用它的话会被拒绝\n· 改完服务端要重启一次')) return;
+    newOut.innerHTML = '';
+    newOut.append(h('div',{class:'hint'},['正在删除并重签…']));
+    try{
+      const r = await api('/api/art/new-pict', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pictId: id, remove: true, write: true }) });
+      const res = r.result || {};
+      newOut.innerHTML = '';
+      newOut.append(h('div',{class:r.ok ? 'verdict ok' : 'verdict no'},
+        [(r.ok ? '已删除 ✓' : '没删：') + '　卡面 ID ' + id + (res.note ? ('　' + res.note) : '')]));
+      const lines = (r.logs || []).slice();
+      if(res.reseal) lines.push('重签：' + res.reseal);
+      if(lines.length) newOut.append(h('div',{class:'hint',style:'white-space:pre-wrap'},[lines.join('\n')]));
+    }catch(e){
+      newOut.innerHTML = '';
+      newOut.append(h('div',{class:'verdict no'},['失败: ' + e.message]));
+    }
+  };
+  api('/api/art/new-pict').then((r)=>{
+    newLbl.textContent = '下一个可用 ID：' + r.nextPictId + '（' + r.bundles.chr10 + '）';
+  }).catch(()=>{ newLbl.textContent = '（查下一个 ID 失败，点按钮时会再试）'; });
+  newBtn.onclick = async ()=>{
+    if(!img){ alert('先选一张图片'); return; }
+    if(newBtn.disabled) return;
+    if(!confirm('新建一个全新的卡面 ID 并用这张图？\n\n' +
+      '· 会新造 2 个**明文**资源包（卡面大图 512×512 + 小图 256×256）+ 一张放大立绘 PNG\n' +
+      '· 会往 version.dat（客户端补丁目录）和 asset-map.json 里登记新条目，并重新签名\n' +
+      '· **不碰任何现有卡**的图和 ID\n' +
+      '· 之后在卡牌编辑里把「立绘 PictID」填成这个新 ID 就行\n' +
+      '· 改完服务端要重启一次（客户端才会拿到新目录）\n\n继续？')) return;
+    newBtn.disabled = true;
+    newOut.innerHTML = '';
+    newOut.append(h('div',{class:'hint'},['正在造包 + 登记…（要造包和重签，可能要十几秒）']));
+    try{
+      const images = {};
+      for(const t of [{key:'chr10',w:512,h:512},{key:'chr20',w:256,h:256}]){
+        const cv = document.createElement('canvas');
+        renderInto({key:t.key, width:t.w, height:t.h}, cv);
+        const d = cv.getContext('2d').getImageData(0, 0, t.w, t.h);
+        images[t.key] = { rgbaBase64: b64FromBytes(new Uint8Array(d.data.buffer, d.data.byteOffset, d.data.length)), w:t.w, h:t.h };
+      }
+      // 放大立绘：官方主流是 1280×1024（5:4，2879 张），也有 1024×1024（1450 张）。
+      // 以前我写 1024×1024，客户端按 5:4 一挤就"纵向拉长"了（用户 2026-09-24 报的）⇒ 跟官方主流对齐。
+      const nat51 = renderCropNative();
+      images.chr51 = { rgbaBase64: b64FromBytes(new Uint8Array(nat51.data.buffer, nat51.data.byteOffset, nat51.data.length)),
+                       w: nat51.width, h: nat51.height, target: { w: 1280, h: 1024 }, fit: 'contain' };
+      const thumbCv = document.createElement('canvas');
+      renderThumbInto(thumbCv);
+      const td = thumbCv.getContext('2d').getImageData(0, 0, THUMB.size, THUMB.size);
+      const thumb = { rgbaBase64: b64FromBytes(new Uint8Array(td.data.buffer, td.data.byteOffset, td.data.length)), w: THUMB.size, h: THUMB.size };
+      const r = await api('/api/art/new-pict', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ images, write: true, thumb, cardId: Number(String($('cardId').value || '').trim()) || 0, removeBg: !!bgChk.checked,
+          compensateCardFace: !!cutinChk.checked }) });
+      const res = r.result || {};
+      newOut.innerHTML = '';
+      newOut.append(h('div',{class: r.ok ? 'verdict ok' : 'verdict no'},
+        [(r.ok ? '新建成功 ✓' : '失败') + '　卡面 ID = ' + res.pictId]));
+      const lines = (r.logs || []).slice();
+      for(const c of (res.created || [])) lines.push('· ' + c.kind + ' → ' + (c.bundle || c.file) + (c.size ? ('　' + c.size) : ''));
+      if(res.reseal) lines.push('· 重签：' + res.reseal);
+      if(lines.length) newOut.append(h('div',{class:'hint',style:'white-space:pre-wrap'},[lines.join('\n')]));
+      if(r.ok){
+        $('pictId').value = res.pictId;
+        $('artCardId').value = '';
+        ART_VERSION = Date.now();
+        updArt();
+        markDirty(true);
+        $('customArtState').textContent = '已新建卡面 ID ' + res.pictId + '（你自己的图，不碰任何现有卡）。服务端重启一次后生效。';
+        newLbl.textContent = '下一个可用 ID：' + (res.pictId + 1) + ' 起（本页刷新后会重新算）';
+      }
+    }catch(e){
+      newOut.innerHTML = '';
+      newOut.append(h('div',{class:'verdict no'},['失败: ' + e.message]));
+    }finally{
+      newBtn.disabled = false;
+    }
+  };
+  // Live2D 状态 + 开关（按卡：同一个 PictID 可能被好几张卡用，动态卡面是按卡号的）
+  const l2Host = h('div',{class:'cropnote',style:'margin-top:8px'});
+  l2Host.append(h('div',{class:'hint'},['正在查这个卡面 ID 的 Live2D 状态…']));
+  body.append(l2Host);
+
+  // ---------------- ② 选图片 ----------------
+  const fileInp = h('input',{type:'file',accept:'image/png,image/jpeg,image/webp,image/gif,image/bmp'});
+  const fileLbl = h('span',{class:'hint'},['还没有选图片']);
+  const pickRow = h('div',{class:'row'});
+  pickRow.append(h('label',{},['选图片']), fileInp, fileLbl);
+  body.append(pickRow);
+
+  // ---------------- ③ 裁剪 ----------------
+  const stage = h('canvas',{class:'cropstage empty',width:STAGE.W,height:STAGE.H});
+  const ctx = stage.getContext('2d');
+  const cropWrap = h('div',{class:'cropwrap'});
+  const side = h('div',{class:'cropside'});
+  cropWrap.append(stage, side);
+
+  const ratioSel = h('select',{style:'width:100%'});
+  const ratioRow = h('div',{class:'row'});
+  ratioRow.append(h('label',{},['裁剪比例']), ratioSel);
+  side.append(ratioRow);
+  side.append(h('div',{class:'hint'},['比例按游戏里那张图的原始尺寸定，工具会缩放到**完全一样的像素尺寸**，不拉伸变形。']));
+
+  const zoom = h('input',{type:'range',min:'40',max:'100',value:'90',style:'width:100%'});
+  const zoomRow = h('div',{class:'row'});
+  zoomRow.append(h('label',{},['裁剪框大小']), zoom);
+  side.append(zoomRow);
+  side.append(h('div',{class:'hint'},['在左边的图上**按住拖动**可以移图，**滚轮**可以缩放；亮框里面的部分才会被保存。']));
+
+  const pvHost = h('div',{class:'cropprev'});
+  side.append(h('div',{class:'hint',style:'margin-top:8px'},['实际会写进去的图（就是游戏里的显示尺寸，已按官方样式抠成透明）：']));
+  side.append(pvHost);
+  // ★ 抠背景：官方卡面/图标都是**透明立绘**（实测 chr20 有 20~27% 全透明、chr10 有 41%），
+  //   不抠的话游戏里圆形图标位会露出「白色方块」（用户 2026-09-24 报的）。
+  const bgChk = h('input',{type:'checkbox'});
+  bgChk.checked = true;
+  const bgRow = h('div',{class:'row',style:'margin-top:6px'});
+  bgRow.append(bgChk, h('span',{class:'hint'},['把背景抠成透明（推荐：官方卡面就是透明的，不抠的话圆形图标位会有白方块）']));
+  side.append(bgRow);
+  const bgNote = h('div',{class:'hint'},['']);
+  side.append(bgNote);
+  // ★ 卡面比例预补偿（2026-09-24 量出来的）：客户端把正方形卡面贴进**竖的** cut-in 面板，
+  //   纵向会多放大 ~1.4 倍（实测 sy/sx = 1.43/1.41，两张游戏截图一致）；官方卡面本身就先
+  //   横向拉长 ~1.35 倍抵消掉。不补的话游戏里人物会被拉长（用户报的「比例不对」）。
+  const cutinChk = h('input',{type:'checkbox'});
+  cutinChk.checked = true;
+  const cutinRow = h('div',{class:'row',style:'margin-top:6px'});
+  cutinRow.append(cutinChk, h('span',{class:'hint'},['卡面按游戏比例预补偿（推荐：游戏的 cut-in 会把卡面纵向拉长约 1.4 倍，' +
+    '这里先横向压一下，游戏里看着才不变形；图标和放大立绘不受影响）']));
+  side.append(cutinRow);
+  side.append(h('div',{class:'hint'},['方向不用你管：卡面纹理在引擎里是上下颠倒存的，工具会在写盘时自动翻正，' +
+    '写完之后游戏里看到的就是上面这几张预览的样子。']));
+  body.append(cropWrap);
+
+  // ---------------- ④ 卡面缩略图（160×160，单独取景）----------------
+  // 这张小图是「工具列表 / 服务端后台 / kairimod」里显示的那张（cn602-admin-assets/card/<卡号>.webp），
+  // 跟游戏里那三张图不是同一张资源。它一般要对准脸/头，位置不固定，所以单独给一次取景。
+  const THUMB = { size: 160, stage: 200 };
+  const thumbWrap = h('div',{class:'cropnote',style:'margin-top:8px'});
+  thumbWrap.append(h('div',{style:'font-weight:700'},['🖼 卡面缩略图（160×160，单独取景）']));
+  thumbWrap.append(h('div',{},['游戏里显示的是上面那三张图；这张小图是**工具列表 / 服务端后台 / kairimod** ' +
+    '显示的那张（`cn602-admin-assets/card/<卡号>.webp`）。它跟卡面不是同一张，所以要**单独**取景 —— ' +
+    '一般要放大对准脸/头。默认跟卡面取景相同，下面可以拖动/滚轮调。']));
+  const thumbStage = h('canvas',{class:'cropstage',width:THUMB.stage,height:THUMB.stage,style:'width:' + THUMB.stage + 'px;height:' + THUMB.stage + 'px'});
+  const thumbSide = h('div',{class:'cropside'});
+  const thumbRow = h('div',{class:'cropwrap'});
+  thumbRow.append(thumbStage, thumbSide);
+  const thumbInfo = h('div',{class:'hint'},['还没有图片']);
+  const thumbZoom = h('input',{type:'range',min:'100',max:'800',value:'100',style:'width:100%'});
+  const thumbBtnRow = h('div',{class:'row'});
+  const thumbReset = h('button',{},['跟卡面取景相同']);
+  const thumbFace = h('button',{},['放大对准上半部（脸一般在上边）']);
+  thumbBtnRow.append(thumbReset, thumbFace);
+  thumbSide.append(thumbInfo, h('div',{class:'hint',style:'margin-top:6px'},['缩放']), thumbZoom, thumbBtnRow);
+  thumbSide.append(h('div',{class:'hint'},['在左边小图上**拖动/滚轮**也能调。上面写的 160×160 就是后台那张图的真实尺寸。']));
+  thumbWrap.append(thumbRow);
+  body.append(thumbWrap);
+
+  let thumbView = { s: 1, ox: 0, oy: 0 };
+  let thumbBaseS = 1;                                      // 「跟卡面取景相同」时的缩放，作为 100% 基准
+  const thumbCtx = thumbStage.getContext('2d');
+  function thumbClamp(){
+    if(!img) return;
+    const iw = img.width * thumbView.s, ih = img.height * thumbView.s;
+    thumbView.ox = iw <= THUMB.stage ? (THUMB.stage - iw) / 2 : Math.min(0, Math.max(THUMB.stage - iw, thumbView.ox));
+    thumbView.oy = ih <= THUMB.stage ? (THUMB.stage - ih) / 2 : Math.min(0, Math.max(THUMB.stage - ih, thumbView.oy));
+  }
+  /** 从卡面那套取景推过来：卡面框里看到什么，缩略图就看什么（用户再自己调） */
+  function thumbFromCardCrop(){
+    if(!img) return;
+    const r = cropRect();                                   // 卡面裁剪框（主舞台坐标）
+    const sx = (r.x - view.ox) / view.s, sy = (r.y - view.oy) / view.s;   // 它在图片像素里的左上角
+    const sw = r.w / view.s, sh = r.h / view.s;
+    const k = Math.max(THUMB.stage / sw, THUMB.stage / sh); // 让它 cover 满 200×200
+    thumbView.s = k;
+    thumbView.ox = (THUMB.stage - sw * k) / 2 - sx * k;
+    thumbView.oy = (THUMB.stage - sh * k) / 2 - sy * k;
+    thumbBaseS = k;
+    thumbClamp();
+  }
+  function thumbZoomPct(){
+    if(!thumbBaseS || !img) return '100';
+    return String(Math.round(100 * thumbView.s / thumbBaseS));
+  }
+  function drawThumb(){
+    thumbCtx.setTransform(1,0,0,1,0,0);
+    thumbCtx.fillStyle = '#0b0d10';
+    thumbCtx.fillRect(0,0,THUMB.stage,THUMB.stage);
+    if(!img){ thumbInfo.textContent = '还没有图片'; return; }
+    thumbClamp();
+    if(typeof snapshotArt === 'function') snapshotArt();     // 取景变了 → 更新存档用的快照
+    thumbCtx.imageSmoothingEnabled = true;
+    thumbCtx.imageSmoothingQuality = 'high';
+    thumbCtx.drawImage(img, thumbView.ox, thumbView.oy, img.width * thumbView.s, img.height * thumbView.s);
+    thumbCtx.strokeStyle = '#6ea8ff';
+    thumbCtx.lineWidth = 1;
+    thumbCtx.strokeRect(.5,.5,THUMB.stage-1,THUMB.stage-1);
+    const cardId = String($('cardId').value || '').trim();
+    thumbInfo.textContent = '会写成 160×160 的 ' + (cardId ? ('cn602-admin-assets/card/' + cardId + '.webp') : 'cn602-admin-assets/card/<卡号>.webp（先在左边填卡号）');
+  }
+  /** 把缩略图取景渲染成 160×160（显示方向） */
+  function renderThumbInto(cv){
+    cv.width = THUMB.size; cv.height = THUMB.size;
+    const g = cv.getContext('2d');
+    g.setTransform(1,0,0,1,0,0);
+    g.fillStyle = '#ffffff';
+    g.fillRect(0,0,THUMB.size,THUMB.size);
+    if(!img) return;
+    thumbClamp();
+    const sx = (-thumbView.ox) / thumbView.s, sy = (-thumbView.oy) / thumbView.s;
+    const sw = THUMB.stage / thumbView.s, sh = THUMB.stage / thumbView.s;
+    const cx = Math.max(0, Math.min(img.width - 1, sx)), cy = Math.max(0, Math.min(img.height - 1, sy));
+    const cw = Math.max(1, Math.min(sw, img.width - cx)), ch = Math.max(1, Math.min(sh, img.height - cy));
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, cx, cy, cw, ch, 0, 0, THUMB.size, THUMB.size);
+  }
+  let thumbDrag = null;
+  thumbStage.addEventListener('pointerdown', (e)=>{ if(!img) return; thumbDrag = { x:e.clientX, y:e.clientY, ox:thumbView.ox, oy:thumbView.oy }; try{ thumbStage.setPointerCapture(e.pointerId); }catch(_){} e.preventDefault(); });
+  thumbStage.addEventListener('pointermove', (e)=>{ if(!thumbDrag) return; thumbView.ox = thumbDrag.ox + (e.clientX - thumbDrag.x); thumbView.oy = thumbDrag.oy + (e.clientY - thumbDrag.y); drawThumb(); });
+  thumbStage.addEventListener('pointerup', ()=>{ thumbDrag = null; });
+  thumbStage.addEventListener('pointercancel', ()=>{ thumbDrag = null; });
+  thumbStage.addEventListener('wheel', (e)=>{
+    if(!img) return; e.preventDefault();
+    const cx = THUMB.stage/2, cy = THUMB.stage/2;
+    const f = Math.exp(-e.deltaY / 400);
+    const ns = Math.max(thumbBaseS * 0.5, Math.min(thumbBaseS * 8, thumbView.s * f));
+    const k = ns / thumbView.s;
+    thumbView.ox = cx - (cx - thumbView.ox) * k;
+    thumbView.oy = cy - (cy - thumbView.oy) * k;
+    thumbView.s = ns;
+    thumbClamp();
+    thumbZoom.value = String(Math.max(50, Math.min(800, Number(thumbZoomPct()))));
+    drawThumb();
+  }, { passive:false });
+  thumbZoom.oninput = ()=>{
+    if(!img) return;
+    const cx = THUMB.stage/2, cy = THUMB.stage/2;
+    const ns = thumbBaseS * (Number(thumbZoom.value) / 100);
+    const k = ns / thumbView.s;
+    thumbView.ox = cx - (cx - thumbView.ox) * k;
+    thumbView.oy = cy - (cy - thumbView.oy) * k;
+    thumbView.s = ns;
+    thumbClamp(); drawThumb();
+  };
+  thumbReset.onclick = ()=>{ thumbFromCardCrop(); thumbZoom.value = '100'; drawThumb(); };
+  thumbFace.onclick = ()=>{
+    if(!img) return;
+    thumbFromCardCrop();
+    thumbView.s = thumbBaseS * 1.9;                        // 放大一点
+    thumbView.oy -= THUMB.stage * 0.22;                    // 往上挪（脸一般在上半部）
+    thumbClamp();
+    thumbZoom.value = '190';
+    drawThumb();
+  };
+
+  const rep = h('div',{});
+  body.append(rep);
+
+  // ---------------- 裁剪几何 ----------------
+  function cropRect(){
+    const pad = 14;
+    const availW = STAGE.W - pad * 2, availH = STAGE.H - pad * 2;
+    const k = Math.min(availW / ratio.w, availH / ratio.h) * cropScale;
+    const w = ratio.w * k, hh = ratio.h * k;
+    return { x: (STAGE.W - w) / 2, y: (STAGE.H - hh) / 2, w, h: hh };
+  }
+  function clampView(){
+    if(!img) return;
+    const r = cropRect();
+    const iw = img.width * view.s, ih = img.height * view.s;
+    if(iw <= r.w) view.ox = r.x + (r.w - iw) / 2;
+    else view.ox = Math.min(r.x, Math.max(r.x + r.w - iw, view.ox));
+    if(ih <= r.h) view.oy = r.y + (r.h - ih) / 2;
+    else view.oy = Math.min(r.y, Math.max(r.y + r.h - ih, view.oy));
+  }
+  function fitToCrop(){
+    if(!img) return;
+    const r = cropRect();
+    // 「填满裁剪框」= 图片刚好盖住亮框（不露底）
+    view.s = Math.max(r.w / img.width, r.h / img.height);
+    view.ox = r.x + (r.w - img.width * view.s) / 2;
+    view.oy = r.y + (r.h - img.height * view.s) / 2;
+    clampView();
+  }
+
+  // ---------------- 取景快照 / 还原（卡牌库存档、分享给别人时要用）----------------
+  // 存的是「用户导入的那张原图 + 取景参数」，别人导入同一份方案、图片还在的话能复现同一张卡面。
+  let srcDataUrl = null, srcName = '';
+  function snapshotArt(){
+    if(!img) return;
+    ART_STATE = {
+      pictId: Number(pictId) || 0,
+      source: srcDataUrl ? { name: srcName, dataUrl: srcDataUrl } : null,
+      view: { s: view.s, ox: view.ox, oy: view.oy },
+      ratio: { w: ratio.w, h: ratio.h },
+      cropScale,
+      thumbView: { s: thumbView.s, ox: thumbView.ox, oy: thumbView.oy },
+      bgRemove: !!(bgChk && bgChk.checked),
+      compensate: !!(cutinChk && cutinChk.checked),
+      targets: editableTargets().map(t=>({ key:t.key, w:t.width, h:t.height })),
+      savedAt: new Date().toISOString(),
+    };
+  }
+  function seedArt(state){
+    if(!state || !state.source || !state.source.dataUrl) return;
+    const im = new Image();
+    im.onload = ()=>{
+      img = im;
+      srcDataUrl = state.source.dataUrl;
+      srcName = state.source.name || '导入的图片';
+      fileLbl.textContent = srcName + '（' + im.width + '×' + im.height + '，从方案里恢复）';
+      stage.classList.remove('empty');
+      if(state.ratio && state.ratio.w && state.ratio.h){
+        ratio = { w: Number(state.ratio.w), h: Number(state.ratio.h) };
+        const key = state.ratio.w + ':' + state.ratio.h;
+        if([...ratioSel.options].some(o=>o.value===key)) ratioSel.value = key;
+      }
+      if(state.cropScale) { cropScale = Number(state.cropScale); zoom.value = String(Math.round(cropScale*100)); }
+      view = Object.assign({ s:1, ox:0, oy:0 }, state.view || {});
+      void fitToCropWarning();
+      drawStage(); renderPreviews();
+      if(state.thumbView){ thumbView = Object.assign({ s: thumbView.s, ox: thumbView.ox, oy: thumbView.oy }, state.thumbView); }
+      drawThumb();
+      snapshotArt();
+      if(state.bgRemove !== undefined && bgChk) bgChk.checked = !!state.bgRemove;
+      if(state.compensate !== undefined && cutinChk) cutinChk.checked = !!state.compensate;
+      applyBtn.disabled = !editableTargets().length;
+    };
+    im.onerror = ()=>{ /* 图片坏了就当没存过 */ };
+    im.src = state.source.dataUrl;
+  }
+  function fitToCropWarning(){
+    // 状态里的 view 是按当时那张图的像素算的；图片尺寸一致时直接可用，
+    // 不一致（换了电脑/换了图）就退回「填满裁剪框」，别把图甩到框外。
+    if(!img) return;
+    const r = cropRect();
+    const sane = view.s > 0.01 && view.s < 50 &&
+      view.ox > r.x - img.width * view.s - 4 && view.ox < r.x + r.w + 4 &&
+      view.oy > r.y - img.height * view.s - 4 && view.oy < r.y + r.h + 4;
+    if(!sane) fitToCrop(); else clampView();
+  }
+  function drawStage(){
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#0b0d10';
+    ctx.fillRect(0, 0, STAGE.W, STAGE.H);
+    if(!img){
+      ctx.fillStyle = '#5b6675';
+      ctx.font = '13px "Microsoft YaHei UI",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('先在上面选一张图片', STAGE.W / 2, STAGE.H / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
+    clampView();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, view.ox, view.oy, img.width * view.s, img.height * view.s);
+    const r = cropRect();
+    ctx.fillStyle = 'rgba(0,0,0,.6)';
+    ctx.fillRect(0, 0, STAGE.W, r.y);
+    ctx.fillRect(0, r.y + r.h, STAGE.W, STAGE.H - (r.y + r.h));
+    ctx.fillRect(0, r.y, r.x, r.h);
+    ctx.fillRect(r.x + r.w, r.y, STAGE.W - (r.x + r.w), r.h);
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.lineWidth = 1;
+    for(let i = 1; i < 3; i++){
+      ctx.beginPath(); ctx.moveTo(r.x + r.w * i / 3, r.y); ctx.lineTo(r.x + r.w * i / 3, r.y + r.h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r.x, r.y + r.h * i / 3); ctx.lineTo(r.x + r.w, r.y + r.h * i / 3); ctx.stroke();
+    }
+    ctx.strokeStyle = '#6ea8ff';
+    ctx.strokeRect(r.x + .5, r.y + .5, r.w - 1, r.h - 1);
+  }
+  /**
+   * 把当前裁剪框里的内容按 t 的原始像素尺寸画进 canvas（居中 cover，不拉伸）。
+   * 画的是**显示方向**（预览看到什么，游戏里就是什么）；bundle 纹理上下颠倒的存储
+   * 约定由后台（lib/artwrite.js）在写盘时负责翻转，这里不用管。
+   */
+  function renderInto(t, cv, opts){
+    const contain = !!(opts && opts.contain);     // 放大立绘用「装进去」：不裁掉人物，留透明边
+    cv.width = t.width; cv.height = t.height;
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, t.width, t.height);
+    if(!contain){ g.fillStyle = '#ffffff'; g.fillRect(0, 0, t.width, t.height); }   // 不透明底（抠背景失败时也好看）
+    if(!img) return;
+    const r = cropRect();
+    let sx = (r.x - view.ox) / view.s, sy = (r.y - view.oy) / view.s;
+    let sw = r.w / view.s, sh = r.h / view.s;
+    sx = Math.max(0, Math.min(img.width - 1, sx));
+    sy = Math.max(0, Math.min(img.height - 1, sy));
+    sw = Math.max(1, Math.min(sw, img.width - sx));
+    sh = Math.max(1, Math.min(sh, img.height - sy));
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = 'high';
+    const sc = contain ? Math.min(t.width / sw, t.height / sh) : Math.max(t.width / sw, t.height / sh);
+    const dw = sw * sc, dh = sh * sc;
+    g.drawImage(img, sx, sy, sw, sh, (t.width - dw) / 2, (t.height - dh) / 2, dw, dh);
+  }
+  /** 把当前裁剪框里的内容按**原分辨率**取出来（供服务端先抠背景再装框用） */
+  function renderCropNative(){
+    const r = cropRect();
+    const sx = Math.max(0, (r.x - view.ox) / view.s), sy = Math.max(0, (r.y - view.oy) / view.s);
+    const sw = Math.max(1, Math.round(Math.min(img.width - sx, r.w / view.s)));
+    const sh = Math.max(1, Math.round(Math.min(img.height - sy, r.h / view.s)));
+    const cv = document.createElement('canvas');
+    cv.width = sw; cv.height = sh;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, sw, sh);
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.drawImage(img, Math.round(sx), Math.round(sy), sw, sh, 0, 0, sw, sh);
+    const d = g.getImageData(0, 0, sw, sh);
+    return { data: new Uint8Array(d.data.buffer, d.data.byteOffset, d.data.length), width: sw, height: sh };
+  }
+
+  let pvTimer = null;
+  function schedulePreview(){
+    if(pvTimer) return;
+    pvTimer = setTimeout(()=>{ pvTimer = null; renderPreviews(); requestBgPreview(); snapshotArt(); }, 110);
+  }
+  function renderPreviews(){ for(const n of pvNodes) renderInto(n.t, n.cv); }
+
+  // ---- 抠背景预览：让「实际会写进去的图」显示服务端抠完背景的样子（棋盘格底）
+  let bgTimer = null;
+  let bgCache = null;
+  function requestBgPreview(){
+    if(!img || !editableTargets().length) return;
+    if(bgTimer) clearTimeout(bgTimer);
+    bgTimer = setTimeout(async ()=>{
+      bgTimer = null;
+      const images = {};
+      for(const t of editableTargets()){
+        const cv = document.createElement('canvas');
+        renderInto(t, cv, t.key === 'chr51' ? {contain:true} : null);
+        const d = cv.getContext('2d').getImageData(0, 0, t.width, t.height);
+        images[t.key] = { rgbaBase64: b64FromBytes(new Uint8Array(d.data.buffer, d.data.byteOffset, d.data.length)), w: t.width, h: t.height };
+      }
+      try{
+        const r = await api('/api/art/bg-preview', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ images, removeBg: !!bgChk.checked }) });
+        bgCache = r;
+        // 把预览槽换成服务端给的图（就是会写进卡包的那张，含透明）
+        for(const n of pvNodes){
+          const pv = r.previews && r.previews[n.t.key];
+          if(!pv) continue;
+          const g = n.cv.getContext('2d');
+          const im = new Image();
+          im.onload = ()=>{ g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,n.cv.width,n.cv.height); g.drawImage(im,0,0,n.cv.width,n.cv.height); };
+          im.src = pv.png;
+        }
+        const st = r.stats || {};
+        const parts = Object.keys(st).map(k=>artKeyCn(k) + ' ' + (st[k].ok ? ('透明 ' + st[k].transparent) : '没抠'));
+        bgNote.textContent = parts.length ? ('抠背景：' + parts.join('　')) : '';
+      }catch(e){ bgNote.textContent = '抠背景预览失败（不影响写入）: ' + e.message; }
+    }, 320);
+  }
+  bgChk.onchange = ()=>{ if(img){ requestBgPreview(); } };
+
+  function buildPreviewSlots(){
+    pvHost.innerHTML = '';
+    pvNodes = [];
+    const list = editableTargets();
+    if(!list.length){ pvHost.append(h('div',{class:'hint'},['这个卡面 ID 没有可写的图。'])); return; }
+    for(const t of list){
+      const cv = h('canvas',{});
+      const w = h('div',{class:'pv'});
+      w.append(cv, h('div',{class:'cap'},[artKeyCn(t.key) + ' ' + t.width + '×' + t.height]));
+      pvHost.append(w);
+      pvNodes.push({ t, cv });
+    }
+    renderPreviews();
+  }
+  function buildRatios(){
+    ratioSel.innerHTML = '';
+    const groups = new Map();
+    for(const t of editableTargets()){
+      const g = gcdInt(t.width, t.height);
+      const key = (t.width / g) + ':' + (t.height / g);
+      if(!groups.has(key)) groups.set(key, { w: t.width / g, h: t.height / g, keys: [], sizes: [] });
+      const e = groups.get(key);
+      e.keys.push(t.key);
+      e.sizes.push(t.width + '×' + t.height);
+    }
+    const list = [...groups.entries()];
+    if(!list.length){
+      ratioSel.disabled = true;
+      ratioSel.append(h('option',{},['（没有可写的图）']));
+      return;
+    }
+    ratioSel.disabled = false;
+    for(const [key, g] of list){
+      ratioSel.append(h('option',{value:key},[g.keys.map(artKeyCn).join(' / ') + '　' + key + '　(' + g.sizes.join('、') + ')']));
+    }
+    const pick = list.find(([k, g])=> g.keys.includes('chr10')) || list[0];
+    ratio = { w: pick[1].w, h: pick[1].h };
+    ratioSel.value = pick[0];
+  }
+
+  // ---------------- 交互：拖动 / 滚轮 ----------------
+  let drag = null;
+  stage.addEventListener('pointerdown', (e)=>{
+    if(!img) return;
+    drag = { x: e.clientX, y: e.clientY, ox: view.ox, oy: view.oy };
+    stage.classList.add('drag');
+    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  stage.addEventListener('pointermove', (e)=>{
+    if(!drag) return;
+    view.ox = drag.ox + (e.clientX - drag.x);
+    view.oy = drag.oy + (e.clientY - drag.y);
+    drawStage(); schedulePreview();
+  });
+  const endDrag = ()=>{ drag = null; stage.classList.remove('drag'); };
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+  stage.addEventListener('wheel', (e)=>{
+    if(!img) return;
+    e.preventDefault();
+    const r = cropRect();
+    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    const f = Math.exp(-e.deltaY / 400);
+    const ns = Math.max(view.s * 0.5, Math.min(view.s * 8, view.s * f));
+    const k = ns / view.s;
+    view.ox = cx - (cx - view.ox) * k;
+    view.oy = cy - (cy - view.oy) * k;
+    view.s = ns;
+    drawStage(); schedulePreview();
+  }, { passive: false });
+
+  // 把图片拖进窗口也能用
+  ['dragenter','dragover'].forEach(ev => modal.addEventListener(ev, (e)=>{ e.preventDefault(); }));
+  modal.addEventListener('drop', (e)=>{
+    e.preventDefault();
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) loadFile(f);
+  });
+  fileInp.onchange = ()=>{ if(fileInp.files && fileInp.files[0]) loadFile(fileInp.files[0]); };
+  zoom.oninput = ()=>{ cropScale = Number(zoom.value) / 100; if(img){ clampView(); } drawStage(); schedulePreview(); };
+  ratioSel.onchange = ()=>{
+    const p = String(ratioSel.value).split(':');
+    ratio = { w: Number(p[0]) || 1, h: Number(p[1]) || 1 };
+    if(img) fitToCrop();
+    drawStage(); schedulePreview();
+  };
+
+  function loadFile(file){
+    if(!/^image\//.test(file.type || '')){
+      alert('这个文件不是图片（' + (file.name || '?') + '）');
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = ()=>{
+      img = im;
+      srcName = file.name || '导入的图片';
+      fileLbl.textContent = file.name + '（' + im.width + '×' + im.height + '）';
+      stage.classList.remove('empty');
+      fitToCrop();
+      drawStage();
+      renderPreviews();
+      thumbFromCardCrop();                 // 缩略图默认跟卡面取景一致，之后用户可以自己调
+      thumbZoom.value = '100';
+      drawThumb();
+      applyBtn.disabled = !editableTargets().length;
+      URL.revokeObjectURL(url);
+      // 原图存成 dataURL：卡牌库导出时把它一起带上，别人导入就能复现
+      try{
+        const fr = new FileReader();
+        fr.onload = ()=>{ srcDataUrl = String(fr.result || '') || null; snapshotArt(); };
+        fr.readAsDataURL(file);
+      }catch(e){ /* 环境不支持 FileReader 就算了，顶多方案里没有内嵌图片 */ }
+    };
+    im.onerror = ()=>{ alert('这张图读不出来，换一张 png / jpg 试试'); URL.revokeObjectURL(url); };
+    im.src = url;
+  }
+
+  // ---------------- 检测 ----------------
+  async function detect(){
+    const v = String(idInp.value || '').trim();
+    idOut.innerHTML = ''; rep.innerHTML = '';
+    if(!/^\d+$/.test(v)){
+      idOut.append(h('div',{class:'verdict no'},['卡面 ID 得是数字']));
+      return;
+    }
+    pictId = v;
+    idOut.append(h('div',{class:'hint'},['正在检查这个卡面 ID 的三张图…']));
+    let r;
+    try{ r = await api('/api/art/targets?pictId=' + encodeURIComponent(v)); }
+    catch(e){ idOut.innerHTML = ''; idOut.append(h('div',{class:'verdict no'},['查不到: ' + e.message])); return; }
+    info = r;
+    idOut.innerHTML = '';
+    const tl = h('div',{class:'tlist'});
+    for(const t of r.targets){
+      const tr = h('div',{class:'tr'});
+      tr.append(h('span',{class:'k'},[artKeyCn(t.key)]));
+      tr.append(h('span',{class:'sz'},[t.width && t.height ? (t.width + '×' + t.height) : (t.exists === false ? '没有文件' : '?')]));
+      tr.append(h('span',{class:'st'},[t.editable ? '✅ 可以改' : ('🔒 改不了　' + (t.note || ''))]));
+      tl.append(tr);
+    }
+    idOut.append(tl);
+    const canFace = r.targets.some(t => t.key === 'chr10' && t.editable);
+    if(canFace){
+      idOut.append(h('div',{class:'verdict ok'},['这个卡面 ID 能改「卡面大图」—— 导入你自己的图片就行。']));
+    } else {
+      const canList = r.targets.filter(t => t.editable).map(t => artKeyCn(t.key));
+      const n = h('div',{class:'cropnote warn'});
+      n.append(h('div',{style:'font-weight:700'},['这个卡面 ID 的卡面图在 CN 加密包里，改不了。']));
+      n.append(h('div',{},['能改的只有：' + (canList.length ? canList.join('、') : '（没有）') +
+        '。游戏里卡列表 / 手牌上显示的是「卡面大图」，所以只改放大立绘的话，列表里那张图不会变。']));
+      n.append(h('div',{},['想要自己的图当卡面，就在下面换一个「整套都能改」的卡面 ID（共 ' +
+        (candCache ? candCache.total : '994') + ' 个可选），然后把图导入进去。']));
+      idOut.append(n);
+      loadCands();
+    }
+    buildRatios();
+    buildPreviewSlots();
+    drawStage();
+    drawThumb();
+    applyBtn.disabled = !img || !editableTargets().length;
+    refreshLive2d();
+  }
+
+  // ---------------- Live2D 状态 / 开关 ----------------
+  // 动态卡面是**按卡号**的（同一个 PictID 可以被好几张卡用，其中只有一部分是动态的），
+  // 所以这里列出「用这个 PictID 的所有卡」和各自的动态状态。
+  let l2Busy = false;
+  async function refreshLive2d(){
+    l2Host.innerHTML = '';
+    l2Host.append(h('div',{class:'hint'},['正在查这个卡面 ID 的 Live2D 状态…']));
+    let r;
+    try{ r = await api('/api/live2d/info?pictId=' + encodeURIComponent(pictId)); }
+    catch(e){ l2Host.innerHTML = ''; l2Host.append(h('div',{class:'hint'},['Live2D 状态查不到: ' + e.message])); return; }
+    l2Host.innerHTML = '';
+    const live = (r.cards || []).filter(c => c.state === 'on' || c.state === 'off' || c.state === 'broken');
+    if(!live.length){
+      l2Host.append(h('div',{class:'verdict ok'},['这个卡面 ID 的卡**都不是** Live2D 动态卡面（一共 ' +
+        (r.cards || []).length + ' 张卡用它）—— 静态图直接生效，不用管。']));
+      return;
+    }
+    l2Host.append(h('div',{style:'font-weight:700'},['用这个卡面 ID 的动态卡面（Live2D）']));
+    for(const c of live){
+      const row = h('div',{class:'row',style:'margin:6px 0 0'});
+      const on = c.state === 'on';
+      row.append(h('span',{class:on?'badge warn':'badge ok'},[on ? '动态卡面' : '已关成静态']));
+      row.append(h('span',{},[c.cardId + '「' + c.name + '」' + (c.rarity ? ('　' + c.rarity) : '') +
+        (c.onDiskBytes ? ('　模型 ' + (c.onDiskBytes / 1048576).toFixed(1) + ' MB') : '') +
+        (c.scrambled ? '（CN 加密包，模型本身改不了，只能停用/启用）' : '')]));
+      const btn = h('button',{class: on ? '' : 'primary'},[on ? '关掉它的动态卡面（改成静态图）' : '恢复成动态卡面']);
+      btn.onclick = async ()=>{
+        if(l2Busy) return;
+        if(on && !confirm('把卡 ' + c.cardId + '「' + c.name + '」的 Live2D 动态卡面关掉？\n\n' +
+          '· 从卡包里把这个卡的 Live2D 模型（' + (c.onDiskBytes ? (c.onDiskBytes / 1048576).toFixed(1) + ' MB' : '') + '）挪到 _local/live2d-disabled\\\n' +
+          '· 并从资源清单里摘掉 —— 客户端下载清单里就没有它了，游戏会回退显示静态卡面\n' +
+          '· 随时可以点「恢复成动态卡面」还原（模型文件一个字节都不会动）\n' +
+          '· 改完服务端要重启一次\n\n继续？')) return;
+        l2Busy = true; btn.disabled = true;
+        l2Host.append(h('div',{class:'hint'},[on ? '正在停用…' : '正在恢复…']));
+        try{
+          const rr = await api('/api/live2d/toggle', { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ cardId: c.cardId, enabled: !on, write: true }) });
+          const lines = (rr.logs || []).slice();
+          if(rr.result && rr.result.note) lines.push('说明: ' + rr.result.note);
+          l2Host.append(h('div',{class: rr.ok ? 'verdict ok' : 'verdict no'},
+            [(rr.ok ? (on ? '已关掉动态卡面 ✓' : '已恢复动态卡面 ✓') : '失败') + '　卡 ' + c.cardId +
+             ((rr.result && rr.result.after && rr.result.after.state) ? ('　现在状态: ' + rr.result.after.state) : '')]));
+          if(lines.length) l2Host.append(h('div',{class:'hint',style:'white-space:pre-wrap'},[lines.join('\n')]));
+        }catch(e){
+          l2Host.append(h('div',{class:'verdict no'},['失败: ' + e.message]));
+        }finally{
+          l2Busy = false; btn.disabled = false;
+          refreshLive2d();
+        }
+      };
+      row.append(btn);
+      l2Host.append(row);
+    }
+    l2Host.append(h('div',{class:'hint',style:'margin-top:4px'},['全包里一共 ' + r.liveCount + ' 张卡有动态卡面' +
+      (r.offCount ? ('，已经关掉 ' + r.offCount + ' 张') : '') + '。关掉只是不让客户端下载那个模型，' +
+      '文件原封不动躺在 _local\\live2d-disabled\\ 里，随时能恢复。']));
+  }
+
+  // ---------------- 换卡面 ID 的候选 ----------------
+  function loadCands(){
+    if(candCache || candHost._loading) return;
+    candHost._loading = true;
+    candHost.innerHTML = '';
+    candHost.append(h('div',{class:'hint'},['正在列出「整套都能改」的卡面 ID…']));
+    api('/api/art/candidates').then((r)=>{
+      candCache = r;
+      candHost.innerHTML = '';
+      renderCands();
+      detect();
+    }).catch((e)=>{
+      candHost.innerHTML = '';
+      candHost.append(h('div',{class:'verdict no'},['候选列表载入失败: ' + e.message]));
+    });
+  }
+  function renderCands(){
+    const blk = h('div',{class:'cropnote'});
+    blk.append(h('div',{style:'font-weight:700'},['换成「整套都能改」的卡面 ID']));
+    blk.append(h('div',{},['清单里的每个 ID，卡面大图 / 小图 / 放大立绘**三张都能改**。' +
+      '注意：换 ID = 把这个 ID 原来的图换掉，所以原来在用它的那张卡也会跟着变 —— 下面标了是哪张卡。']));
+    const sel = h('select',{style:'width:100%;margin-top:6px'});
+    const g0 = h('optgroup',{label:'这张卡面 ID 没有 Live2D 动态卡面（静态图一定看得到 —— 最推荐）'});
+    const g1 = h('optgroup',{label:'只影响 1 张卡'});
+    const g2 = h('optgroup',{label:'多张卡共用这个 ID（会一起变）'});
+    for(const c of candCache.candidates){
+      const who = c.cards.map(x => x.id + '「' + x.name + '」').join('、');
+      const liveNote = c.live2dCount
+        ? ('　⚠ 有 ' + c.live2dCount + ' 张是 Live2D 动态卡面：' + c.live2dCards.map(x => x.id + '「' + x.name + '」').join('、') +
+           (c.live2dCount > c.live2dCards.length ? (' 等 ' + c.live2dCount + ' 张') : '') + '（要关掉动态才看得到静态图）')
+        : '　✅ 无动态卡面';
+      const label = c.pictId + '　' + (c.chr51 ? ('放大图 ' + c.chr51) : '没有放大图') +
+        '　→　' + (c.userCount === 0 ? '没有卡在用' : (who + (c.userCount > c.cards.length ? (' 等 ' + c.userCount + ' 张') : ''))) + liveNote;
+      const box = (c.live2dCount === 0 && c.userCount <= 1) ? g0 : (c.userCount <= 1 ? g1 : g2);
+      box.append(h('option',{value:String(c.pictId)},[label]));
+    }
+    if(g0.children.length) sel.append(g0);
+    if(g1.children.length) sel.append(g1);
+    if(g2.children.length) sel.append(g2);
+    const btns = h('div',{class:'row',style:'margin-top:6px'});
+    const useBtn = h('button',{class:'primary'},['用这个 ID']);
+    const peekBtn = h('button',{},['看它现在的图']);
+    btns.append(sel, useBtn, peekBtn);
+    const peek = h('img',{style:'max-width:200px;border:1px solid var(--line);border-radius:6px;margin-top:6px;display:none'});
+    blk.append(btns, h('div',{class:'hint'},['「看它现在的图」只在你想确认时加载一张，不会一次拉 994 张。']), peek);
+    useBtn.onclick = ()=>{
+      // sel.value 在某些情况下可能是空的（没有选中项）→ 退回清单第一个，绝不静默什么都不做
+      const p = String(sel.value || (candCache.candidates[0] && candCache.candidates[0].pictId) || '').trim();
+      if(!/^\d+$/.test(p)){ alert('候选列表是空的，没法换 ID'); return; }
+      idInp.value = p;
+      peek.style.display = 'none';
+      detect();
+    };
+    peekBtn.onclick = ()=>{
+      const p = String(sel.value || (candCache.candidates[0] && candCache.candidates[0].pictId) || '').trim();
+      if(!candCache.candidates.some(c => String(c.pictId) === p)){ alert('这个 ID 没有放大立绘文件'); return; }
+      peek.src = '/art/' + p + '?t=' + Date.now();
+      peek.style.display = '';
+    };
+    candHost.append(blk);
+  }
+
+  // ---------------- 写入 ----------------
+  function showReport(r, write){
+    rep.innerHTML = '';
+    rep.append(h('div',{class:'verdict ok'},[(write ? '已写入卡包 ✓' : '干跑通过 ✓（包一个字节都没改）') + '　卡面 ID ' + pictId]));
+    const lines = [];
+    for(const w of ((r.report && r.report.written) || [])){
+      lines.push('· ' + artKeyCn(w.key) + ' → ' + w.path + (w.size ? ('　' + w.size) : '') +
+        (w.verified === false ? '　⚠ 回读校验不一致（先别用）' : ''));
+    }
+    for(const s of ((r.report && r.report.skipped) || [])){
+      if(s.reason === '没有提供这张图') continue;
+      lines.push('· ' + artKeyCn(s.key) + ' 跳过：' + s.reason);
+    }
+    for(const t of ((info && info.targets) || [])) if(!t.editable) lines.push('· ' + artKeyCn(t.key) + ' 改不了：' + (t.note || ''));
+    if(r.report && r.report.reseal) lines.push('· 重签：' + r.report.reseal);
+    if(!lines.length) lines.push('（没有要写的东西）');
+    rep.append(h('div',{class:'hint',style:'white-space:pre-wrap;margin-top:6px'},[lines.join('\n')]));
+    // ★ 把刚写进去的缩略图直接摆出来（并带 cache-bust，免得浏览器给看老图）。
+    //   以前只写日志，用户看不到变化就以为「缩略图功能没生效」（2026-09-24 用户报的）。
+    const th = r.report && r.report.thumbnail;
+    if(write && th && th.wrote) {
+      const cardId = Number(String($('cardId').value || '').trim()) || 0;
+      const box = h('div',{class:'cropnote',style:'margin-top:8px'});
+      box.append(h('div',{style:'font-weight:700'},['刚写进去的卡面缩略图（' + th.bytes + ' 字节，' + th.width + '×' + th.height + '）']));
+      if(cardId){
+        const img = h('img',{style:'width:160px;height:160px;image-rendering:auto;border:1px solid var(--line);border-radius:4px;margin-top:4px'});
+        img.src = '/thumb/' + cardId + '?t=' + Date.now();
+        box.append(img);
+        box.append(h('div',{class:'hint'},['这就是工具卡列表 / 服务端后台里显示的那张小图（' + th.relative + '）']));
+      } else {
+        box.append(h('div',{class:'hint'},['（没填卡号，所以没法在这里预览；文件在 ' + th.relative + '）']));
+      }
+      rep.append(box);
+    }
+    if(th && th.error) rep.append(h('div',{class:'verdict no'},['缩略图出错: ' + (th.note || '')]));
+    if(write){
+      $('pictId').value = pictId;
+      $('artCardId').value = '';
+      ART_VERSION = Date.now();
+      updArt();
+      $('customArtState').textContent = '已写入你自己的卡面（PictID ' + pictId + '）。服务端正在跑的话，重启一次才会生效。';
+      markDirty(true);
+    }
+  }
+  async function doApply(write){
+    if(!img){ alert('先选一张图片'); return; }
+    const list = editableTargets();
+    if(!list.length){ alert('这个卡面 ID 没有可写的图'); return; }
+    const cardId = Number(String($('cardId').value || '').trim()) || 0;
+    if(write && !cardId){ alert('先在左边填「卡牌 ID」—— 卡面缩略图要按卡号存'); return; }
+    const images = {};
+    for(const t of list){
+      const cv = document.createElement('canvas');
+      renderInto(t, cv);   // 显示方向；纹理上下颠倒的存储约定由后台 artwrite 负责翻
+      if(t.key === 'chr51'){
+        if(t.exists === false) continue;                     // 原来没有这个文件就跳过，别凭空造一张
+        // ★ 送「裁剪区原分辨率」的像素 + 目标尺寸/装框方式：服务端**先抠背景再装框**
+        //   （contain：四周留透明边，不裁人物）。尺寸必须是这个卡面 ID 现有文件的尺寸（artwrite 会校验）。
+        const nat = renderCropNative();
+        images.chr51 = { rgbaBase64: b64FromBytes(new Uint8Array(nat.data.buffer, nat.data.byteOffset, nat.data.length)),
+                         w: nat.width, h: nat.height, target: { w: t.width, h: t.height }, fit: 'contain' };
+      } else {
+        const d = cv.getContext('2d').getImageData(0, 0, t.width, t.height);
+        images[t.key] = {
+          rgbaBase64: b64FromBytes(new Uint8Array(d.data.buffer, d.data.byteOffset, d.data.length)),
+          w: t.width, h: t.height,
+        };
+      }
+    }
+    applyBtn.disabled = dryBtn.disabled = true;
+    rep.innerHTML = '';
+    rep.append(h('div',{class:'hint'},[write ? '正在写入…（要重签资源清单，可能要几十秒）' : '正在干跑校验…']));
+    try{
+      const thumbCv = document.createElement('canvas');
+      renderThumbInto(thumbCv);
+      const td = thumbCv.getContext('2d').getImageData(0, 0, THUMB.size, THUMB.size);
+      const thumb = { rgbaBase64: b64FromBytes(new Uint8Array(td.data.buffer, td.data.byteOffset, td.data.length)), w: THUMB.size, h: THUMB.size };
+      const r = await api('/api/art/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pictId: Number(pictId), images, write: !!write, cardId, thumb, removeBg: !!bgChk.checked,
+          compensateCardFace: !!cutinChk.checked }) });
+      showReport(r, write);
+    }catch(e){
+      rep.innerHTML = '';
+      rep.append(h('div',{class:'verdict no'},['失败: ' + e.message]));
+    }finally{
+      applyBtn.disabled = dryBtn.disabled = false;
+    }
+  }
+  idBtn.onclick = detect;
+  idInp.onkeydown = (e)=>{ if(e.key === 'Enter') detect(); };
+  dryBtn.onclick = ()=>doApply(false);
+  applyBtn.onclick = ()=>{
+    if(!confirm('确认把这张图写进卡包？\n卡面 ID: ' + pictId + '\n\n' +
+      '· 会改动「' + editableTargets().map(t => artKeyCn(t.key)).join('、') + '」\n' +
+      '· 会重签资源清单（改完客户端才认）\n' +
+      '· 如果这个卡面 ID 别的卡也在用，那些卡的图会一起变\n\n' +
+      '服务端正在跑的话，改完要重启一次才生效。')) return;
+    doApply(true);
+  };
+  applyBtn.disabled = true;
+  drawStage();
+  detect();
+  // 从卡牌库载入的方案里带了原图+取景 → 自动装回来（用户不用再选一次图片、再对一次框）
+  if(ART_SEED){ const s = ART_SEED; ART_SEED = null; try{ seedArt(s); }catch(e){ console.warn('取景恢复失败', e); } }
+}
+bind('btnCustomArt','click',openCustomArt);
+
+// ------------------------------------------------------------------ effect blocks
+function effectDef(kind){ return STATE.palette.find(e=>e.id===kind); }
+
+function addBlock(kind){
+  const host = $('blocks');
+  const wrap = h('div',{class:'blk'});
+  const eff0 = effectDef(kind) || STATE.palette[0];
+  selectEffect(wrap, eff0, null);
+  host.append(wrap);
+  markDirty(true);
+}
+
+/** Build (or rebuild) one block's editor UI. */
+function selectEffect(wrap, eff, existing){
+  wrap.innerHTML = '';
+  // 导入的块可以把原技能的演出动画一起带过来（界面上有「保留原演出」开关）
+  if(existing && existing.art2d) wrap._art2d = existing.art2d;
+  if(existing && existing.art3d) wrap._art3d = existing.art3d;
+  const hd = h('div',{class:'hd'});
+  hd.append(h('b',{},['效果块']));
+  const effSel = h('select',{});
+  for(const e of STATE.palette) effSel.append(h('option',{value:e.id},[e.name + '  (' + e.opcode + ')']));
+  effSel.value = eff.id;
+  hd.append(effSel);
+  const sp = h('span',{class:'sp'}); hd.append(sp);
+  hd.append(h('button',{class:'danger',onclick:()=>{
+    // 条件变体里至少留一个效果块：全删光的话，预览/干跑会报「一个效果块都没有」
+    // （2026-09-23 用户就是这么踩到的）。不想用这个变体就删整个变体。
+    const host = wrap.parentNode;
+    if(host && host._isVariantBlocks && host.querySelectorAll && host.querySelectorAll('.blk').length <= 1){
+      alert('条件变体至少要留一个效果块。\n不想用这个变体的话，请删掉整个「条件变体」（右上角那个删除）。');
+      return;
+    }
+    wrap.remove(); markDirty(true);
+  }},['删除']));
+  wrap.append(hd);
+
+  const bd = h('div',{class:'bd'});
+  wrap.append(bd);
+
+  const tgtRow = h('div',{class:'row'});
+  tgtRow.append(h('label',{},['作用对象']));
+  const tgtSel = h('select',{});
+  for(const t of eff.allowedTargets) tgtSel.append(h('option',{value:t.value},[t.label]));
+  if(existing && existing.roleTarget){
+    const match = eff.allowedTargets.find(t=>t.value === roleToSkillTarget(existing.roleTarget));
+    if(match) tgtSel.value = match.value;
+  }
+  tgtRow.append(tgtSel);
+  const rtCn = (code)=>{ const m = (CHOICES && CHOICES.roleTargets) || {}; return m[code] || code; };
+  tgtRow.append(h('span',{class:'hint'},['实际作用对象(内部码): ' + rtCn(eff.roleTargets[tgtSel.value])]));
+  tgtSel.onchange = ()=>{ tgtRow.querySelector('.hint').textContent = '实际作用对象(内部码): ' + rtCn(eff.roleTargets[tgtSel.value]); markDirty(true); };
+  bd.append(tgtRow);
+
+  const paramInputs = {};
+  const grid = h('div',{class:'grid4'});
+  let any = false;
+
+  // ------------------------------------------------------------------ 数值：按「满级」填
+  // 游戏卡面/说明里的数字都是按**满级**算出来的（实测：Lv1 的卡，说明里显示 14999 =
+  // p0 + p1×80/1000）。所以这里让人直接填人话数字「Lv1 值 / 满级值」，
+  // 由 lib/values.js 反解回 CSV 里的原始参数（p0/p1 或 p3/p4）。原始值放在 hidden 里。
+  const vshape = (VALUES && VALUE_SHAPE[eff.id]) || { kind: 'raw' };
+  const valueRow = h('div',{class:'row',style:'background:#1a2233;border:1px solid #2c3f5c;border-radius:6px;padding:6px 8px;margin-bottom:8px'});
+  const rawInputs = {};            // 原始参数（隐藏，供 _read 用）
+  const mkRaw = (idx, val) => { const el = h('input',{type:'hidden'}); el.value = String(val === undefined ? '' : val); rawInputs[idx] = el; return el; };
+  let valueNote = null;
+  if (vshape.kind === 'pair' || vshape.kind === 'fixedBuff') {
+    const curP = {};
+    for (const [i, spec] of Object.entries(eff.params)) {
+      const cur = existing && existing.params ? existing.params[Number(i)] : undefined;
+      curP[i] = (cur !== undefined && cur !== '') ? cur : (spec.default !== undefined ? spec.default : (spec.kind === 'fixed' ? spec.value : ''));
+    }
+    const lmax = Math.max(2, Number(($('levelMax') && $('levelMax').value) || 80) || 80);
+    const v1 = VALUES.valueAt(eff.id, curP, 1);
+    const vm = VALUES.valueAt(eff.id, curP, lmax);
+    valueRow.append(h('label',{style:'color:#cfe0ff;font-weight:600'},['数值（游戏说明显示的就是满级值）']));
+    const inV1 = h('input',{type:'number',class:'sm',title:'1 级时的数值',style:'width:110px'});
+    const inVM = h('input',{type:'number',class:'sm',title:'满级时的数值',style:'width:110px'});
+    inV1.value = v1 === null ? '' : String(v1);
+    inVM.value = vm === null ? '' : String(vm);
+    valueRow.append(h('span',{class:'hint'},['Lv1']), inV1, h('span',{class:'hint'},['满级']), inVM);
+    valueNote = h('span',{class:'hint'},['']);
+    valueRow.append(valueNote);
+    // 原始参数（base/grow）建 hidden，其余参数照旧显示在下面
+    for (const [i, spec] of Object.entries(eff.params)) {
+      if (spec.kind === 'fixed' || spec.kind === 'blank') { continue; }
+      const num = Number(i);
+      if (num === vshape.base || num === vshape.grow) { mkRaw(num, curP[i]); continue; }
+      any = true;
+      const lab = h('label',{class:'dim'},[spec.label || ('参数'+(num+1))]);
+      let inp;
+      const cur = existing && existing.params ? existing.params[num] : undefined;
+      if(spec.observed && spec.observed.length && (spec.kind === 'enum' || spec.observed.length <= 30)){
+        inp = h('select',{style:'width:100%'});
+        if(spec.kind !== 'enum') inp.append(h('option',{value:''},['(空)']));
+        for(const o of spec.observed) inp.append(h('option',{value:o.value,title:o.value},[(o.cn ? o.cn + '  ' : '') + o.value + '  (×' + o.count + ')']));
+        if(cur !== undefined && cur !== '' && !spec.observed.some(o=>o.value===cur)) inp.append(h('option',{value:cur},[cur]));
+        if(spec.kind === 'enum' && spec.default !== undefined && !spec.observed.some(o=>o.value===spec.default)) inp.append(h('option',{value:spec.default},[spec.default]));
+        inp.value = (cur !== undefined && cur !== '') ? cur : (spec.default !== undefined ? spec.default : (spec.observed[0]||{}).value || '');
+      } else {
+        inp = h('input',{type:'text',style:'width:100%'});
+        inp.value = (cur !== undefined && cur !== '') ? cur : (spec.default !== undefined ? spec.default : '');
+      }
+      inp.oninput = inp.onchange = ()=>markDirty(true);
+      lab.append(inp);
+      grid.append(lab);
+      paramInputs[num] = inp;
+    }
+    // 固定列也要塞进 _read（例如 p2/p5），否则会被当成空
+    for (const [i, spec] of Object.entries(eff.params)) {
+      if (spec.kind === 'fixed') { const el = h('input',{type:'hidden'}); el.value = String(spec.value); rawInputs[i] = el; }
+    }
+    const resync = (fromField) => {
+      const merg = Object.assign({}, curP);
+      for (const [i, el] of Object.entries(rawInputs)) merg[i] = el.value;
+      for (const [i, el] of Object.entries(paramInputs)) merg[i] = el.value;
+      const a = Number(inV1.value), b = Number(inVM.value);
+      if (!Number.isFinite(a) || !Number.isFinite(b)) return;
+      const r = VALUES.solveFromValues(eff.id, a, b, lmax, merg);
+      for (const [i, el] of Object.entries(rawInputs)) if (r.params[i] !== undefined) el.value = String(r.params[i]);
+      valueNote.textContent = r.ok
+        ? ('工具会写成：' + (vshape.kind === 'pair' ? '威力' : '基础值') + ' ' + r.params[vshape.base] + ' + 每级 ' +
+           (vshape.kind === 'pair' ? r.params[vshape.grow] + '×等级/1000' : r.params[vshape.grow] + '×等级（×缩放/1000）'))
+        : '⚠ 这两个数解不出正好一致的参数（差 ' + (r.achieved ? Math.abs(r.achieved.lvmax - b) : '?') + '），已按最接近的写';
+      markDirty(true);
+    };
+    inV1.oninput = ()=>resync('v1');
+    inVM.oninput = ()=>resync('vm');
+    // 其它参数（缩放/回合/种类）变了也要重新同步原始值
+    for (const [i, inp] of Object.entries(paramInputs)) inp.addEventListener('change', ()=>resync('other'));
+    bd.append(valueRow);
+    bd.append(...Object.values(rawInputs));
+    // 初次同步：把原始参数写进 hidden（不改人话框里的数）
+    for (const [i, el] of Object.entries(rawInputs)) {
+      const merg = Object.assign({}, curP);
+      const r = VALUES.solveFromValues(eff.id, v1, vm, lmax, merg);
+      if (r.params[i] !== undefined) el.value = String(r.params[i]);
+    }
+    // 等级上限改了 → 满级值要重算（原始参数不动）
+    VALUE_REFRESH.push({ wrap, run: ()=>{
+      const L = Math.max(2, Number(($('levelMax') && $('levelMax').value) || 80) || 80);
+      const merg = {};
+      for (const [i, el] of Object.entries(rawInputs)) merg[i] = el.value;
+      for (const [i, el] of Object.entries(paramInputs)) merg[i] = el.value;
+      const v = VALUES.valueAt(eff.id, merg, L);
+      if (v !== null) inVM.value = String(v);
+      const a = Number(inV1.value);
+      if (Number.isFinite(a)) resync('level');
+    } });
+    if (vshape.kind === 'fixedBuff') {
+      bd.append(h('div',{class:'hint'},['※ 加攻/降防是【加法族】：数值 = ((基础值 + 每级值×等级) × 缩放) / 1000 + 附加×等级（服务端口径）']));
+    }
+  } else {
+    for(const [i, spec] of Object.entries(eff.params)){
+      if(spec.kind === 'fixed' || spec.kind === 'blank') continue;
+      any = true;
+      const lab = h('label',{class:'dim'},[spec.label || ('参数'+(Number(i)+1))]);
+      let inp;
+      const cur = existing && existing.params ? existing.params[Number(i)] : undefined;
+      if(spec.observed && spec.observed.length && (spec.kind === 'enum' || spec.observed.length <= 30)){
+        inp = h('select',{style:'width:100%'});
+        if(spec.kind !== 'enum') inp.append(h('option',{value:''},['(空)']));
+        for(const o of spec.observed) inp.append(h('option',{value:o.value,title:o.value},[(o.cn ? o.cn + '  ' : '') + o.value + '  (×' + o.count + ')']));
+        // keep the current value selectable even if it is not in the observed list
+        if(cur !== undefined && cur !== '' && !spec.observed.some(o=>o.value===cur)) inp.append(h('option',{value:cur},[cur]));
+        if(spec.kind === 'enum' && spec.default !== undefined && !spec.observed.some(o=>o.value===spec.default)) inp.append(h('option',{value:spec.default},[spec.default]));
+        inp.value = String((cur !== undefined && cur !== '') ? cur : (spec.default !== undefined ? spec.default : (spec.observed[0]||{}).value || ''));
+      } else {
+        inp = h('input',{type:'text',style:'width:100%'});
+        inp.value = String((cur !== undefined && cur !== '') ? cur : (spec.default !== undefined ? spec.default : ''));
+      }
+      inp.oninput = inp.onchange = ()=>markDirty(true);
+      lab.append(inp);
+      grid.append(lab);
+      paramInputs[i] = inp;
+    }
+  }
+  if(any) bd.append(grid);
+
+  const chainRow = h('div',{class:'row'});
+  chainRow.append(h('label',{},['连携倍率']));
+  const chain = h('input',{type:'text',class:'sm'});
+  // 注意：块的内容可能来自 JSON（卡牌库的方案 / 导入的技能），里面的数字是 **number** 类型，
+  // 所以这里统一 String() 一下 —— 不然读回来 `.trim()` 会炸（2026-09-24 加卡牌库时踩到）。
+  chain.value = (existing && existing.chainRate !== undefined) ? String(existing.chainRate) : String(eff.chainRateDefault);
+  chain.oninput = ()=>markDirty(true);
+  chainRow.append(chain);
+  chainRow.append(h('button',{onclick:()=>{ chain.value='20'; markDirty(true); }},['20']));
+  chainRow.append(h('button',{onclick:()=>{ chain.value='0'; markDirty(true); }},['0(不吃连携)']));
+  chainRow.append(h('span',{class:'hint'},[eff.family==='buffAtk'||eff.family==='buffDef'||eff.family==='debuffAtk'||eff.family==='debuffDef'
+    ? '这一族是【加法】：只加固定点数' : '这一族是【乘法】：按百分比放大']));
+  bd.append(chainRow);
+  if(eff.note) bd.append(h('div',{class:'hint'},['※ ' + eff.note]));
+
+  const readBlock = () => ({
+    kind: effSel.value,
+    params: Object.assign(
+      Object.fromEntries(Object.entries(paramInputs).map(([i,inp])=>[i, String(inp.value).trim()])),
+      Object.fromEntries(Object.entries(rawInputs).map(([i,inp])=>[i, String(inp.value).trim()])),
+    ),
+    roleTarget: effectDef(effSel.value).roleTargets[tgtSel.value] || 'SELF',
+    chainRate: String(chain.value).trim()===''?0:Number(String(chain.value).trim()),
+    // 从已有技能导入时带着原演出动画；没带就让 tool 按属性自己挑
+    art2d: wrap._art2d || undefined,
+    art3d: wrap._art3d || undefined,
+  });
+  wrap._read = readBlock;
+
+  const descBox = h('div',{class:'desc'},['—']);
+  bd.append(descBox);
+  wrap._updateDesc = (txt)=>{ descBox.textContent = txt || '—'; };
+
+  effSel.onchange = ()=>{ selectEffect(wrap, effectDef(effSel.value), readBlock()); markDirty(true); };
+}
+
+function roleToSkillTarget(roleTarget){
+  return { SELF:'SELF', FRIEND_ALL:'FRIEND_ALL', SELECT:'ENEMY_ONE', ENEMY_ALL:'ENEMY_ALL' }[roleTarget] || 'ENEMY_ONE';
+}
+
+$('btnAddBlock').onclick = ()=>addBlock('attack');
+
+// ------------------------------------------------------------------ 从已有技能导入效果块
+// 用户要的：「克隆一张卡的技能，把数值直接填进拼技能的模块」——方便拿老卡改数值，也少踩坑。
+async function openImportModal(){
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box',style:'width:860px'});
+  box.append(h('h3',{},['📥 导入已有技能的效果块']));
+  const body = h('div',{class:'body'});
+  body.append(h('div',{class:'hint'},['填**卡牌 ID**（会自动取它的覚醒技，没有就用通常技），或者直接填**技能 ID**。导入后数值会填进下面的效果块，你随便改；块序、目标、连携率、条件变体都照原样带过来。']));
+  const row = h('div',{class:'row'});
+  const inp = h('input',{placeholder:'卡牌 ID 或 技能 ID，例如 10000182',style:'flex:1'});
+  const btn = h('button',{class:'primary'},['查']);
+  row.append(inp, btn);
+  body.append(row);
+  const keepArt = h('input',{type:'checkbox'}); keepArt.checked = true;
+  const keepDesc = h('input',{type:'checkbox'}); keepDesc.checked = true;
+  const opt = h('div',{class:'row'});
+  opt.append(keepArt, h('span',{class:'hint'},['保留原技能的演出动画']),
+             keepDesc, h('span',{class:'hint'},['说明文字沿用原技能（推荐：游戏里显示的说明跟官方一模一样，只改数值不会乱）']));
+  body.append(opt);
+  const out = h('div',{style:'margin-top:8px'});
+  body.append(out);
+  box.append(body);
+  const foot = h('div',{class:'foot'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  foot.append(h('button',{onclick:close},['取消']));
+  const fillBtn = h('button',{class:'primary',disabled:'disabled'},['填入效果块']);
+  foot.append(fillBtn);
+  box.append(foot);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+  inp.focus();
+
+  let result = null;
+  const run = async ()=>{
+    out.innerHTML = '';
+    fillBtn.disabled = true;
+    const v = inp.value.trim();
+    if(!v) return;
+    try{
+      const r = await api('/api/decompile?' + (/^\d+$/.test(v) && STATE.cards.some(c=>String(c.id)===v) ? 'cardId=' + v : 'id=' + v));
+      result = r;
+      if(!r.ok){
+        out.append(h('div',{class:'verdict no'},[r.reason || '这个技能不能导入']));
+        return;
+      }
+      const s = r.skill;
+      const head = h('div',{class:'verdict ok'},[]);
+      head.textContent = (r.card ? ('卡 ' + r.card.id + ' ' + (r.card.crown||'') + (r.card.name||'') + '　→　') : '') +
+        '技能 ' + r.skillId + '「' + (s.nameCn || s.name) + '」　' + (KIND_CN[s.kind] || s.kind) + ' / ' + cnElPair(s.element) +
+        ' / 费用 ' + s.cost + ' / 目标 ' + cnSkillTarget(s.target) +
+        '　·　' + r.blockCount + ' 个效果块' + (r.variantCount ? ' + ' + r.variantCount + ' 个条件变体' : '');
+      out.append(head);
+      const tbl = h('div',{class:'hint'});
+      const lmax = Math.max(2, Number($('levelMax').value)||80);
+      for(const b of s.blocks){
+        const eff = effectDef(b.kind);
+        const pObj = Object.assign({}, b.params);
+        const v1 = VALUES ? VALUES.valueAt(b.kind, pObj, 1) : null;
+        const vm = VALUES ? VALUES.valueAt(b.kind, pObj, lmax) : null;
+        tbl.append(h('div',{},['· 块: ' + (eff ? eff.name : b.kind) + '（' + b.opcode + '） 目标 ' + cnRoleTarget(b.roleTarget) +
+          (vm === null ? '' : '　Lv1 ' + v1 + ' → 满级 ' + vm)]));
+      }
+      out.append(tbl);
+      if(s.description) out.append(h('div',{class:'hint',style:'white-space:pre-wrap;margin-top:6px'},['说明: ' + (s.descriptionCn || s.description)]));
+      fillBtn.disabled = false;
+    }catch(e){
+      out.append(h('div',{class:'verdict no'},['查不到: ' + e.message]));
+    }
+  };
+  btn.onclick = run;
+  inp.onkeydown = (e)=>{ if(e.key==='Enter') run(); };
+
+  fillBtn.onclick = ()=>{
+    if(!result || !result.ok) return;
+    const s = result.skill;
+    // ① 技能头字段（名称/说明用服务器翻好的中文；说明里的 {N} 占位符原样保留）
+    $('arthurName').value = s.nameCn || s.name || '';
+    $('arthurSub').value = s.subName || '';
+    $('arthurKind').value = s.kind;
+    $('arthurDamageKind').value = s.damageKind;
+    if([...$('arthurJob').options].some(o=>o.value===s.job)) $('arthurJob').value = s.job;
+    $('arthurCost').value = s.cost;
+    $('arthurTarget').value = s.target;
+    if([...$('arthurElement').options].some(o=>o.value===s.element)) $('arthurElement').value = s.element;
+    updElementHint();
+    $('arthurDesc').value = keepDesc.checked ? (s.descriptionCn || s.description || '') : '';
+    // ② 效果块
+    const host = $('blocks'); host.innerHTML = '';
+    for(const b of s.blocks){
+      const w = h('div',{class:'blk'});
+      selectEffect(w, effectDef(b.kind) || STATE.palette[0],
+        keepArt.checked ? b : {params:b.params, roleTarget:b.roleTarget, chainRate:b.chainRate});
+      host.append(w);
+    }
+    // ③ 条件变体（条件参数原样保留，注入时用原始格子）
+    $('variants').innerHTML = '';
+    for(const v of s.variants){
+      addVariant(keepArt.checked ? v : Object.assign({}, v, {
+        blocks: v.blocks.map(b=>({params:b.params, roleTarget:b.roleTarget, chainRate:b.chainRate})),
+      }));
+    }
+    close();
+    markDirty(true);
+    $('shellFrom').textContent = '已导入技能 ' + result.skillId + ' 的效果块（数值可以随便改）';
+    alert('已填入 ' + s.blocks.length + ' 个效果块' + (s.variants.length ? ' + ' + s.variants.length + ' 个条件变体' : '') +
+      '。\n\n· 每个效果块上面的「数值」填的是 Lv1 / 满级 两个数（游戏说明显示的是满级）\n' +
+      '· 「说明文字」已经填好，里面的 {1} {11} 会自己跟着数值变，不用手改\n' +
+      '· 想知道游戏里最终显示什么，点右上「预览」或「干跑」');
+  };
+}
+bind('btnImportSkill','click',openImportModal);
+
+
+
+// ------------------------------------------------------------------ variants
+function addVariant(existing){
+  const host = $('variants');
+  const wrap = h('div',{class:'blk'});
+  const hd = h('div',{class:'hd'});
+  hd.append(h('b',{},['条件变体']));
+  const condSel = h('select',{});
+  for(const c of STATE.conditions) if(c.code!=='') condSel.append(h('option',{value:c.code},[c.label + (c.exampleText?('  例: '+c.exampleText):'')]));
+  hd.append(condSel);
+  const sp = h('span',{class:'sp'}); hd.append(sp);
+  hd.append(h('button',{class:'danger',onclick:()=>{ wrap.remove(); markDirty(true); }},['删除']));
+  wrap.append(hd);
+  const bd = h('div',{class:'bd'});
+  wrap.append(bd);
+
+  const row = h('div',{class:'row'});
+  row.append(h('label',{},['变体目标']));
+  const tgt = h('select',{});
+  [['ENEMY_ONE','敌单体'],['ENEMY_ALL','敌全体'],['SELF','自身'],['USER_ALL','己方全体']].forEach(([v,l])=>tgt.append(h('option',{value:v},[l])));
+  row.append(tgt);
+  row.append(h('label',{},['優先度']));
+  const prio = h('input',{type:'number',class:'sm'}); prio.value = '1';
+  row.append(prio);
+  bd.append(row);
+
+  const p1 = h('div',{class:'row'});
+  p1.append(h('label',{},['条件参数']));
+  const a = h('input',{type:'text',class:'sm'}); a.value='3';
+  const b = h('input',{type:'text',class:'sm'}); b.value='0';
+  p1.append(a, h('span',{class:'hint'},['最小值']), b, h('span',{class:'hint'},['最大值(0=不限)']));
+  bd.append(p1);
+  const hint = h('div',{class:'hint'},['']);
+  bd.append(hint);
+  // 从已有技能导入时：条件参数原样保留（注入时用原始 5 个格子，一个字节都不动）
+  if(existing){
+    if(existing.skillTarget) tgt.value = existing.skillTarget;
+    if(existing.condition) condSel.value = existing.condition;
+    const cv = existing.conditionValues || {};
+    if(cv.min !== undefined && cv.min !== null) a.value = String(cv.min);
+    if(cv.max !== undefined && cv.max !== null) b.value = String(cv.max);
+    if(existing.priority !== undefined && existing.priority !== null) prio.value = String(existing.priority);
+  }
+  wrap._raw = (existing && existing.conditionValuesRaw) ? existing.conditionValuesRaw.slice() : null;
+  wrap._raw2 = (existing && existing.conditionValues2Raw) ? existing.conditionValues2Raw.slice() : null;
+  const upd = ()=>{
+    const c = condSel.value;
+    const vs = { min:a.value, max:b.value };
+    hint.textContent = engine_conditionText(c, vs) + (wrap._raw ? '　（条件参数沿用导入的原值）' : '');
+  };
+  [a,b,condSel].forEach(x=>x.oninput = x.onchange = ()=>{ wrap._raw = null; wrap._raw2 = null; upd(); markDirty(true); });
+  upd();
+
+  bd.append(h('div',{class:'hint'},['这个变体满足条件时会**替换掉**默认那套效果块。下面只填这个变体自己的效果块：']));
+  const inner = h('div',{});
+  inner._isVariantBlocks = true;          // 让块上的「删除」知道自己在变体里（不许删到 0 个）
+  bd.append(inner);
+  const innerAdd = h('button',{onclick:()=>{ const w = h('div',{class:'blk'}); selectEffect(w, effectDef('attack'), null); inner.append(w); }},['+ 加效果块']);
+  bd.append(innerAdd);
+  const seedBlocks = (existing && existing.blocks && existing.blocks.length) ? existing.blocks : null;
+  if(seedBlocks){
+    for(const bl of seedBlocks){ const w = h('div',{class:'blk'}); selectEffect(w, effectDef(bl.kind) || STATE.palette[0], bl); inner.append(w); }
+  } else {
+    const w0 = h('div',{class:'blk'}); selectEffect(w0, effectDef('attack'), null); inner.append(w0);
+  }
+
+  wrap._read = ()=>({
+    skillTarget: tgt.value,
+    condition: condSel.value,
+    conditionValues: { min:a.value, max:b.value, element:'FIRE', count:2, percent:50, status:'POISON' },
+    conditionValuesRaw: wrap._raw || undefined,
+    conditionValues2Raw: wrap._raw2 || undefined,
+    priority: Number(prio.value)||1,
+    blocks: [...inner.querySelectorAll('.blk')].map(w=>w._read && w._read()).filter(Boolean),
+  });
+  host.append(wrap);
+  markDirty(true);
+}
+$('btnAddVariant').onclick = ()=>addVariant();
+
+function engine_conditionText(code, v){
+  if(code==='DECK_COMBO_COUNT'){ const n=Number(v.min||0); return '【'+n+'连携以上】'; }
+  if(code==='TURN'){ return (Number(v.max||0)>0)?('【'+v.max+'回合以下】'):('【'+v.min+'回合以上】'); }
+  if(code==='SELF_HP_PER'){ return '【自身/血量'+(v.max||v.min||50)+'%' + (Number(v.max)>0?'以下':'以上') + '】'; }
+  if(code==='SELF_OTHER_PLAY_ATTR'){ return '【自身/属性牌'+(v.count||2)+'枚以上】'; }
+  if(code==='SELF_OTHER_PLAY_SKILL_KIND'){ return '【自身/类型牌'+(v.count||2)+'枚以上】'; }
+  if(code==='SELF_OTHER_PLAY_RARITY'){ return '【自身/稀有度牌'+(v.count||2)+'枚以上】'; }
+  return '【'+code+'】';
+}
+
+// ------------------------------------------------------------------ collect draft
+function collectDraft(){
+  // 一律先 String()：DOM 里是字符串，但测试桩/从 JSON 恢复的值可能是数字
+  const raw = id => { const el = $(id); return el ? String(el.value === undefined || el.value === null ? '' : el.value) : ''; };
+  const num = id => { const v = raw(id).trim(); return v===''?undefined:Number(v); };
+  const str = id => { const v = raw(id).trim(); return v===''?undefined:v; };
+  const blocks = [...$('blocks').querySelectorAll('.blk')].map(w=>w._read && w._read()).filter(Boolean);
+  // 空的条件变体（块被删光了）不发上去：服务端会丢掉它们，但不如这里就别送
+  const allVariants = [...$('variants').querySelectorAll('.blk')].map(w=>w._read && w._read()).filter(Boolean);
+  const variants = allVariants.filter(v => (v.blocks || []).length > 0);
+  if(variants.length !== allVariants.length){
+    console.warn('丢掉了 ' + (allVariants.length - variants.length) + ' 个没有效果块的条件变体');
+  }
+  const draft = {
+    id: num('cardId'), clone: STATE.src ? STATE.src.id : 10000182,
+    crown: str('crown')||'', name: str('name')||'',
+    rarityRank: num('rarity'), arthurType: num('job'), cost: num('cost'),
+    levelMax: num('levelMax'), fameMax: num('fameMax'), loveMax: num('loveMax'),
+    pictId: num('pictId'), expTable: undefined,
+    // 台词/配音（card.csv 第 67 / 82 列）—— 总是显式送，好让「清空」真的生效
+    // ★ 台词里的换行统一转成游戏用的 <br>：CSV 是按行读的，塞真换行会把整张表读坏
+    serif: raw('serifText').replace(/\r\n?|\n/g, '<br>'), voiceId: raw('voiceId').trim(),
+    artCardId: num('artCardId'),
+    experienceTableId: num('expTable'), premiumRarity: $('premium').value==='true',
+    parameterInitial: { hp:num('initHp'), attack:num('initAtk'), magic:num('initMag'), mind:num('initMnd') },
+    parameterMaximum: { hp:num('maxHp'), attack:num('maxAtk'), magic:num('maxMag'), mind:num('maxMnd') },
+    element: $('arthurElement').value,
+  };
+  const target = $('arthurTarget').value;
+  const skillBase = {
+    name: $('arthurName').value.trim(), subName: $('arthurSub').value.trim(),
+    kind: $('arthurKind').value, element: $('arthurElement').value,
+    damageKind: $('arthurDamageKind').value, cost: num('arthurCost')===undefined?draft.cost:num('arthurCost'),
+    // 说明文字：手填/导入的优先；留空就让工具按效果块自动生成
+    description: ($('arthurDesc').value || '').trim() || undefined,
+    target, blocks: blocks.length?blocks:[{kind:'attack',params:{0:'100',1:'0'},roleTarget:'SELECT',chainRate:20}],
+    variants,
+  };
+  if(STATE.mode === 'custom'){
+    draft.arthur = { mode:'custom', skill: skillBase };
+  } else if(STATE.mode === 'clone'){
+    draft.arthur = { mode:'clone' };
+  } else {
+    draft.arthur = { mode:'existing', skillId: num('arthurSkillId') };
+  }
+  // ★ 通常技的自动生成：只取覚醒技的**第 1 段**效果块并弱化（用户 2026-09-25 定的规则）
+  //   说明文字必须按它自己那一段重新生成 —— 不能让通常技继承覚醒技的整段说明
+  //   （否则游戏里会出现「说明写了 3 个效果、实际只有 1 个」的错）
+  const weakNormalSkill = ()=>{
+    const scale = Number($('weakenScale').value)||0.6;
+    return Object.assign({}, skillBase, {
+      name: ($('arthurName').value.trim()||'技能'), subName:'', job:'THIEF',
+      cost: draft.cost, blocks: weakenBlocks(skillBase.blocks, scale), variants: [],
+      description: undefined,
+    });
+  };
+  const nm = $('normalMode').value;
+  if(nm === 'weaken'){
+    draft.normal = { mode:'custom', skill: weakNormalSkill() };
+  } else if(nm === 'none'){
+    // A card with no 通常技 breaks the *other* three jobs, so fall back to a weakened
+    // 覚醒技 instead of writing an empty column (the injector rejects it anyway).
+    draft.normal = { mode:'custom', skill: weakNormalSkill() };
+  }
+  else if(nm === 'clone'){ draft.normal = { mode:'clone' }; }
+  else { draft.normal = { mode:'existing', skillId: num('normalSkillId') }; }
+  return draft;
+}
+
+// mirror of engine.weaken ★ 2026-09-25 用户定的规则：**不管覚醒技有几段，通常技只取第 1 段**并弱化
+// （官方通常技基本就是一条简单效果；把所有段都缩一遍会像"小号覚醒技"，没有普通技的感觉）
+const VALUE_PARAMS = { attack:[0,1], heal:[0,1], atkUp:[3,4], defUp:[3,4], atkDown:[3,4], defDown:[3,4],
+  atkUpPct:[3], defUpPct:[3], atkDownPct:[3], paramLimitBreak:[3,4], enchant:[1,4], burn:[3,4] };
+function weakenBlocks(blocks, scale){
+  const first = (blocks && blocks.length) ? [blocks[0]] : [];
+  return first.map(b=>{
+    const idx = VALUE_PARAMS[b.kind];
+    if(!idx) return JSON.parse(JSON.stringify(b));
+    const params = Object.assign({}, b.params);
+    for(const i of idx){
+      const raw = params[i];
+      if(raw===undefined||raw===null||raw==='') continue;
+      const n = Number(raw);
+      if(!isFinite(n)) continue;
+      params[i] = String(Math.max(0, Math.round(n*scale)));
+    }
+    return Object.assign({}, b, { params });
+  });
+}
+
+// ------------------------------------------------------------------ mode tabs
+/** 切「覚醒技」的三种来源：自拼 / 复用克隆源 / 导入已有技能（卡牌库载入也用它） */
+function setArthurMode(mode){
+  STATE.mode = mode || 'custom';
+  if($('arthurMode')) [...$('arthurMode').children].forEach(x=>x.classList.toggle('on', x.dataset.mode===STATE.mode));
+  if($('arthurCustom')) $('arthurCustom').style.display = STATE.mode==='custom' ? '' : 'none';
+  if($('arthurExisting')) $('arthurExisting').style.display = STATE.mode==='existing' ? '' : 'none';
+}
+$('arthurMode').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-mode]'); if(!b) return;
+  setArthurMode(b.dataset.mode);
+  markDirty(true);
+});
+$('btnLookup').onclick = async ()=>{
+  try{
+    const s = await api('/api/skill?id=' + $('arthurSkillId').value);
+    const kindCn = (KIND_CN[s.kind] || s.kind);
+    $('arthurExistingInfo').textContent = s.name + ' · ' + kindCn + '/' + cnEl(s.element) + ' · 费用 ' + s.cost +
+      ' · 角色块 ' + s.blocks.map(b=>b.opcode).join('+') + ' · 说明: ' + (s.description||'(空)');
+  }catch(e){ $('arthurExistingInfo').textContent = '查不到: ' + e.message; }
+};
+$('normalMode').onchange = ()=>{
+  $('weakenRow').style.display = $('normalMode').value==='weaken' ? '' : 'none';
+  $('normalExisting').style.display = $('normalMode').value==='existing' ? '' : 'none';
+  markDirty(true);
+};
+
+let dirty = false;
+function markDirty(v){ dirty = v===undefined ? true : v; $('dirtyInfo').textContent = dirty ? '● 有未预览的改动' : ''; }
+document.addEventListener('input', ()=>markDirty(true));
+
+// ------------------------------------------------------------------ preview / inject
+async function doPreview(){
+  const draft = collectDraft();
+  const r = await api('/api/preview', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({draft})});
+  const R = r.resolved;
+  // push the compiled description back into each block's footer
+  const blocks = [...$('blocks').querySelectorAll('.blk')];
+  if(R.slots.arthur && R.slots.arthur.mode==='custom'){
+    const segs = String(R.slots.arthur.description).split('｜');
+    blocks.forEach((w,i)=>{ if(w._updateDesc) w._updateDesc(segs[i] || (segs.length===1?segs[0]:'')); });
+  }
+  const L = [];
+  L.push('卡牌: ' + (R.crown||'') + (R.name||'') + '   ID ' + R.id);
+  L.push('稀有度 ' + R.rarityCn + '　职业 ' + R.jobCn + '(arthur_type=' + R.arthurType + ')　费用 ' + R.cost +
+    '　属性 ' + (R.elementCn || cnElPair(R.element)) +
+    (R.fusionAttributes ? '（卡属性掩码 ' + R.fusionAttributes + '）' : ''));
+  L.push('Lv1 白值   ' + JSON.stringify(R.parameterInitial) + '   → 游戏 Lv1 显示 ' + JSON.stringify(R.derivedLv1));
+  L.push('满级白值   ' + JSON.stringify(R.parameterMaximum) + '   （等级 ' + R.levelMax + '，卡面显示的就是这一行）');
+  L.push('下级经验 ' + R.nextLevelExperience);
+  L.push('');
+  for(const slotKey of ['arthur','normal']){
+    const s = R.slots[slotKey];
+    L.push('【' + (slotKey==='arthur'?'覚醒技':'通常技') + '】' + (s.mode==='custom'?'（自己拼）':s.mode==='clone'?'（沿用克隆源）':s.mode==='existing'?'（现有技能）':'（不使用）'));
+    if(s.mode==='custom'){
+      L.push('  说明: ' + s.description);
+      if(s.placeholderProblems && s.placeholderProblems.length) L.push('  ⚠ 占位符问题: ' + s.placeholderProblems.join(' / '));
+      s.blocks.forEach(b=>L.push('  块'+b.index+' ' + b.name + ' 作用对象=' + cnRoleTarget(b.roleTarget) +
+        (b.valueText ? ('  ' + b.valueText) : '') +
+        (b.valueLvMax !== undefined && b.valueLvMax !== null ? '（游戏说明显示：' + b.valueLvMax + '）' : '') +
+        ' 参数=' + JSON.stringify(b.params.filter(x=>x!==''))));
+      s.variants.forEach(v=>L.push('  ▸ 变体 目标=' + cnSkillTarget(v.skillTarget) + ' ' + v.conditionText + ' 優先度=' + v.priority + ' 效果块=' + v.blockCount));
+      if(s.skippedVariants) L.push('  ⚠ 有 ' + s.skippedVariants + ' 个条件变体没有效果块，已被忽略（不想用就把整个变体删掉）');
+    } else if(s.mode==='clone' || s.mode==='existing'){
+      const i = s.info;
+      if(i) L.push('  ' + i.id + ' ' + i.name + ' ' + (KIND_CN[i.kind]||i.kind) + '/' + cnElPair(i.element) + ' 费用' + i.cost + ' 说明: ' + (i.description||'(空)'));
+    }
+    L.push('');
+  }
+  $('previewBox').textContent = L.join('\n');
+  $('arthurBadge').textContent = (R.slots.arthur && R.slots.arthur.mode==='custom')
+    ? (R.slots.arthur.blocks.length + ' 块' + (R.slots.arthur.variants.length?(' + ' + R.slots.arthur.variants.length + ' 变体'):''))
+    : '—';
+  markDirty(false);
+  return R;
+}
+function round(v){ return Math.round(v*1000)/1000; }
+
+$('btnPreview').onclick = ()=>doPreview().catch(e=>{ $('previewBox').textContent = '预览失败: ' + e.message; });
+
+async function doInject(write){
+  if(STATE.busy) return;
+  STATE.busy = true; $('btnInject').disabled = $('btnDry').disabled = true;
+  $('logBox').style.display = '';
+  $('logBox').textContent = (write ? '' : '（干跑：只做校验，不写盘）\n');
+  try{
+    const draft = collectDraft();
+    const pre = await doPreview();
+    if(pre && pre.slots && pre.slots.arthur && pre.slots.arthur.placeholderProblems && pre.slots.arthur.placeholderProblems.length){
+      if(write && !confirm('说明占位符有问题，仍然继续？\n' + pre.slots.arthur.placeholderProblems.join('\n'))) return;
+    }
+    if(write){
+      if(!confirm('确认写入服务端包？\n会重建 container.dat 并重签。\n卡牌 ID: ' + draft.id + '\n\n※ 服务端在运行的话，改完需要重启才生效。')) return;
+    }
+    const r = await api('/api/inject', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({draft, write: !!write})});
+    $('logBox').textContent += r.logs.join('\n') + '\n\n' + (write ? '注入完成 ✓' : '干跑完成 ✓（包一个字节都没改）');
+    if(write){
+      // ★ 写完一张卡就自动存进「卡牌库」（用户要的「批量记住写过的卡」）
+      try{
+        const rr = await saveToLibrary({ silent:true, note:'注入 ' + new Date().toLocaleString() });
+        if(rr && rr.ok) $('logBox').textContent += '\n已存进卡牌库（' + rr.action + '，共 ' + rr.total + ' 条）';
+      }catch(e){ $('logBox').textContent += '\n（卡牌库自动存档失败：' + e.message + '，可以稍后手动存）'; }
+    }
+  }catch(e){
+    $('logBox').textContent += '\n错误: ' + e.message;
+  }finally{
+    STATE.busy = false; $('btnInject').disabled = $('btnDry').disabled = false;
+  }
+}
+$('btnInject').onclick = ()=>doInject(true);
+$('btnDry').onclick = ()=>doInject(false);
+
+// ================================================================== 卡牌库（方案记忆 / 导出 / 导入）
+// 用户 2026-09-24：写完一张卡退出就重头来，要能批量记住、还要能生成文件分享给别人。
+// 两种记忆分开：
+//   · localStorage 的「当前编辑中」——每次改动都存，刷新/重开页面自动恢复（防手滑丢工作）
+//   · 卡牌库（服务端 library/cards.json）——一张卡一条配方，注入成功后自动存，可导出/导入
+const LS_KEY = 'kairicard:current:v1';
+const LS_AUTO = 'kairicard:autosave:v1';
+// 自定义卡面的取景状态：由 openCustomArt() 里的 snapshotArt() 更新，供存档/分享用
+let ART_STATE = null;
+let ART_SEED = null;
+
+function currentPreset(extra){
+  const draft = collectDraft();
+  const p = {
+    sid: (extra && extra.sid) || CUR_SID || undefined,
+    cardId: draft.id || 0,
+    clone: draft.clone || 0,
+    title: String((draft.crown||'') + (draft.name||'')).trim(),
+    draft,
+    art: ART_STATE ? JSON.parse(JSON.stringify(ART_STATE)) : null,
+    notes: (extra && extra.note) || '',
+    savedAt: new Date().toISOString(),
+    tool: { name:'cardcomposer', version:1 },
+  };
+  return p;
+}
+let CUR_SID = null;          // 当前正在编辑的方案在库里的 sid（存过一次之后就有）
+
+async function saveToLibrary(opts){
+  const o = opts || {};
+  const preset = currentPreset({ sid: o.sid || CUR_SID, note: o.note });
+  if(!String(preset.title||'').trim() && !o.silent){
+    if(!confirm('这张卡还没填名字，也要存进卡牌库吗？')) return null;
+  }
+  const r = await api('/api/library/save', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ preset }) });
+  CUR_SID = r.sid;
+  if(!o.silent) alert('已存进卡牌库 ✓\n\n' + (preset.title || '(没名字)') + '\n' +
+    (r.action === 'updated' ? '（覆盖了同名方案）' : '（新增）') + '\n库文件：' + r.file);
+  return r;
+}
+
+/** 把一条方案恢复进表单（含自定义卡面取景，下次打开卡面窗口时生效）。 */
+async function applyPreset(preset, opts){
+  if(!preset || !preset.draft) return alert('这条方案没有内容');
+  const d = preset.draft;
+  // 方案里有克隆源卡号 → 先把克隆源查回来（表单里的「套用」状态、立绘预览都靠它）
+  if(d.clone && (!STATE.src || Number(STATE.src.id) !== Number(d.clone))){
+    try{ STATE.src = await api('/api/clone?id=' + Number(d.clone)); }catch(e){ /* 卡被删了也能载入，只是没预览 */ }
+  }
+  const set = (id,v)=>{ const el = $(id); if(el) el.value = (v===undefined||v===null) ? '' : String(v); };
+  set('cardId', d.id); set('crown', d.crown); set('name', d.name);
+  set('rarity', d.rarityRank); set('job', d.arthurType); set('cost', d.cost);
+  set('levelMax', d.levelMax); set('fameMax', d.fameMax); set('loveMax', d.loveMax);
+  const pi = d.parameterInitial || {}, pm = d.parameterMaximum || {};
+  set('initHp', pi.hp); set('initAtk', pi.attack); set('initMag', pi.magic); set('initMnd', pi.mind);
+  set('maxHp', pm.hp); set('maxAtk', pm.attack); set('maxMag', pm.magic); set('maxMnd', pm.mind);
+  set('pictId', d.pictId); set('expTable', d.experienceTableId); set('premium', String(!!d.premiumRarity));
+  set('artCardId', d.artCardId);
+  set('serifText', String(d.serif === undefined || d.serif === null ? '' : d.serif).replace(/<br\s*\/?>/gi, '\n'));
+  set('voiceId', d.voiceId);
+  if(d.element){ const el = $('arthurElement'); if([...el.options].some(o=>o.value===d.element)) el.value = d.element; }
+  // 技能：模式 + 头字段 + 效果块 + 条件变体
+  const mode = (d.arthur && d.arthur.mode) || 'custom';
+  setArthurMode(mode);
+  const sk = (d.arthur && d.arthur.skill) || {};
+  set('arthurName', sk.name); set('arthurSub', sk.subName); set('arthurKind', sk.kind);
+  set('arthurDamageKind', sk.damageKind); set('arthurJob', sk.job); set('arthurCost', sk.cost);
+  set('arthurTarget', sk.target); set('arthurDesc', sk.description);
+  if(sk.element){ const el = $('arthurElement'); if([...el.options].some(o=>o.value===sk.element)) el.value = sk.element; }
+  if(d.arthur && d.arthur.mode === 'existing') set('arthurSkillId', d.arthur.skillId);
+  $('blocks').innerHTML = '';
+  for(const b of (sk.blocks || [])){
+    const w = h('div',{class:'blk'});
+    selectEffect(w, effectDef(b.kind) || STATE.palette[0], b);
+    $('blocks').append(w);
+  }
+  $('variants').innerHTML = '';
+  for(const v of (sk.variants || [])) addVariant(v);
+  // 通常技
+  const nm = (d.normal && d.normal.mode) || 'weaken';
+  const nmSel = $('normalMode');
+  if([...nmSel.options].some(o=>o.value===nm)) nmSel.value = nm;
+  if(d.normal && d.normal.skillId) set('normalSkillId', d.normal.skillId);
+  // 卡面取景：存着，等用户下次打开「自定义卡面」时自动装回去
+  ART_SEED = preset.art || null;
+  ART_STATE = preset.art || null;
+  updElementHint(); updVoiceHint(); updDerived();
+  if(typeof updArt === 'function') updArt();
+  const st = $('customArtState');
+  if(st) st.textContent = ART_SEED && ART_SEED.source ? '已带上这张方案的图片，点开「自定义卡面」会自动装回' : '想把自己的图当卡面，点这个按钮';
+  CUR_SID = preset.sid || null;
+  markDirty(true);
+  if(!(opts && opts.silent)){
+    $('shellFrom').textContent = '已从卡牌库载入方案（' + (preset.title || '') + '）';
+  }
+}
+
+// ---- localStorage：当前编辑内容（刷新不丢）
+let lsTimer = null;
+function scheduleLocalSave(){
+  if(lsTimer) return;
+  lsTimer = setTimeout(()=>{
+    lsTimer = null;
+    try{ if(localStorage.getItem(LS_AUTO) === '0') return; }catch(e){}
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify({ savedAt:new Date().toISOString(), sid:CUR_SID, preset:currentPreset({}) }));
+    }catch(e){ /* 图片太大就算了，不打扰用户 */ }
+  }, 1200);
+}
+function restoreLocalDraft(){
+  let raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }catch(e){ return; }
+  if(!raw) return;
+  let obj = null;
+  try{ obj = JSON.parse(raw); }catch(e){ return; }
+  if(!obj || !obj.preset || !obj.preset.draft) return;
+  const d = obj.preset.draft;
+  const label = (d.crown||'') + (d.name||'');
+  if(!confirm('发现上次没写完的内容：\n\n' + (label || '(还没填名字)') + '\n卡牌 ID ' + (d.id||'?') +
+    '　（' + new Date(obj.savedAt).toLocaleString() + '）\n\n要恢复它吗？\n（选「取消」就从空白开始，上次的内容还留着，刷新还会问）')) return;
+  applyPreset(obj.preset, { silent:true });
+  $('logBox').style.display = '';
+  $('logBox').textContent = '已恢复上次编辑的内容（' + new Date(obj.savedAt).toLocaleString() + '）\n';
+}
+function clearLocalDraft(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+
+// ---- 导出下载（浏览器直接存成文件）
+function downloadJson(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type:'application/json' });
+  const a = h('a',{ href: URL.createObjectURL(blob), download: filename });
+  document.body.append(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+}
+function stamp(){ const d = new Date(); const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()); }
+function safeName(s){ return String(s||'card').replace(/[\\/:*?"<>|\s]+/g,'_').slice(0,40); }
+
+async function openLibrary(){
+  const modal = h('div',{class:'modal'});
+  const box = h('div',{class:'box',style:'width:920px'});
+  box.append(h('h3',{},['📚 卡牌库（写过的卡都在这儿，可导出文件分享给别人）']));
+  const body = h('div',{class:'body'});
+  const foot = h('div',{class:'foot'});
+  const close = ()=>{ modal.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = (e)=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown', onKey);
+  const info = h('div',{class:'hint'});
+  const listHost = h('div',{style:'max-height:48vh;overflow:auto;margin-top:8px'});
+  const sel = new Set();
+  let LIB = { presets: [], file: '' };
+
+  async function reload(){
+    const r = await api('/api/library');
+    LIB = { presets: Array.isArray(r && r.presets) ? r.presets : [], file: (r && r.file) || '(未知)' };
+    info.textContent = '库文件：' + LIB.file + '　（想手动备份/分享，直接拷这个文件也行）　共 ' + LIB.presets.length + ' 条';
+    render();
+  }
+  function render(){
+    listHost.innerHTML = '';
+    if(!LIB.presets.length){ listHost.append(h('div',{class:'hint'},['库里还没有方案。点下面「把当前这张存进库」，或者注入成功时它会自动存。'])); return; }
+    for(const p of LIB.presets){
+      const row = h('div',{class:'row',style:'border-bottom:1px solid var(--line);padding:6px 0;gap:6px'});
+      const cb = h('input',{type:'checkbox'});
+      cb.checked = sel.has(p.sid);
+      cb.onchange = ()=>{ cb.checked ? sel.add(p.sid) : sel.delete(p.sid); };
+      const title = h('b',{style:'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'},
+        [p.title || '(没名字)' + (p.hasImage ? ' 🖼' : '')]);
+      const meta = h('span',{class:'hint',style:'min-width:330px'},[
+        '卡号 ' + (p.cardId || '?') + '　克隆 ' + (p.clone || '?') + '　PictID ' + (p.pictId || '?') +
+        (p.voiceId ? ('　配音 ' + p.voiceId) : '　没配音') + (p.hasSerif ? '　有台词' : '') +
+        (p.hasImage ? '　含图' : '') + '　' + String(p.updatedAt || '').replace('T',' ').slice(0,16)]);
+      const bLoad = h('button',{class:'primary'},['载入']);
+      const bDel = h('button',{class:'danger'},['删除']);
+      bLoad.onclick = async ()=>{
+        const one = await api('/api/library/get?sid=' + encodeURIComponent(p.sid));
+        await applyPreset(one.preset);
+        close();
+        $('logBox').style.display = '';
+        $('logBox').textContent = '已载入方案「' + (one.preset.title || '') + '」——表单已恢复；卡面取景会在你下次打开「自定义卡面」时自动装回。\n';
+      };
+      bDel.onclick = async ()=>{
+        if(!confirm('删掉库里这条方案？\n\n' + (p.title || '') + '（卡号 ' + (p.cardId || '?') + '）\n\n只删库里的记录，游戏包和已经注入的卡不受影响。')) return;
+        await api('/api/library/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ sid: p.sid }) });
+        sel.delete(p.sid); await reload();
+      };
+      row.append(cb, title, meta, bLoad, bDel);
+      listHost.append(row);
+    }
+  }
+
+  const btnSave = h('button',{class:'primary'},['把当前这张存进库']);
+  btnSave.onclick = async ()=>{ await saveToLibrary({ sid: CUR_SID }); await reload(); };
+  const btnSaveAs = h('button',{},['另存为新的一条']);
+  btnSaveAs.onclick = async ()=>{ CUR_SID = null; await saveToLibrary({}); await reload(); };
+  const btnExpSel = h('button',{},['导出勾选的']);
+  btnExpSel.onclick = async ()=>{
+    if(!sel.size) return alert('先勾几条（左面的小方框）');
+    const pack = await api('/api/library/export', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ sids: [...sel] }) });
+    downloadJson(pack, 'kairicard-' + pack.count + '张-' + stamp() + '.json');
+    info.textContent = '已导出 ' + pack.count + ' 条 → 浏览器下载目录（文件名 kairicard-' + pack.count + '张-' + stamp() + '.json），发给别人就能导入。';
+  };
+  const btnExpAll = h('button',{},['导出全部']);
+  btnExpAll.onclick = async ()=>{
+    const pack = await api('/api/library/export', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    if(!pack.count) return alert('库里还没有方案');
+    downloadJson(pack, 'kairicard-全部' + pack.count + '张-' + stamp() + '.json');
+    info.textContent = '已导出全部 ' + pack.count + ' 条 → 浏览器下载目录（kairicard-全部' + pack.count + '张-' + stamp() + '.json）。';
+  };
+  const fileInp = h('input',{type:'file',accept:'.json,application/json',style:'display:none'});
+  fileInp.onchange = async ()=>{
+    const f = fileInp.files && fileInp.files[0];
+    if(!f) return;
+    try{
+      const text = await f.text();
+      let pack = null;
+      try{ pack = JSON.parse(text); }catch(e){ return alert('这个文件不是 JSON（' + e.message + '）'); }
+      const pre = await api('/api/library/import', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pack, write:false }) });
+      const list = (pre.addedList || []).slice(0,8).map(a=>'· ' + a.title + '（卡号 ' + (a.cardId||'?') + '）').join('\n');
+      if(!confirm('这个文件里有 ' + (pre.added ? pre.added.length : 0) + ' 条方案：\n\n' + list +
+        ((pre.added && pre.added.length > 8) ? '\n…' : '') +
+        ((pre.renamed && pre.renamed.length) ? '\n\n其中 ' + pre.renamed.length + ' 条和本机已有方案重名/SID 相同，会作为新的一条存进来（不覆盖你原来的）。' : '') +
+        '\n\n导入进去吗？')) return;
+      const r = await api('/api/library/import', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ pack, write:true }) });
+      await reload();
+      info.textContent = '导入完成：新增 ' + r.added + ' 条' + ((r.skipped && r.skipped.length) ? ('，跳过 ' + r.skipped.length + ' 条（内容不完整）') : '') + '，现在共 ' + r.total + ' 条。';
+    }catch(e){
+      alert('导入失败: ' + e.message);
+    }finally{ fileInp.value = ''; }
+  };
+  const btnImp = h('button',{},['导入别人的文件…']);
+  btnImp.onclick = ()=>{ fileInp.value=''; fileInp.click(); };
+  const autoChk = h('input',{type:'checkbox'});
+  autoChk.checked = (()=>{ try{ return localStorage.getItem(LS_AUTO) !== '0'; }catch(e){ return true; } })();
+  const autoWrap = h('label',{class:'dim',style:'display:flex;align-items:center;gap:6px'},[autoChk,
+    h('span',{},['自动记住当前编辑内容（刷新/重开工具不丢）'])]);
+  autoChk.onchange = ()=>{ try{ localStorage.setItem(LS_AUTO, autoChk.checked ? '1' : '0'); }catch(e){} };
+
+  body.append(info, h('div',{class:'row',style:'margin-top:8px;flex-wrap:wrap'},[btnSave, btnSaveAs, btnExpSel, btnExpAll, btnImp]),
+    h('div',{class:'hint',style:'margin-top:4px'},['① 一条方案 = 一张卡的完整配方（名字/数值/技能/台词/配音 + 卡面取景）。' +
+      '② 注入成功后会自动存一条。③ 载入会把表单整份恢复（自定义卡面连图带取景一起，下次打开卡面窗口自动装回）。']),
+    autoWrap, listHost, fileInp);
+  box.append(body);
+  foot.append(h('button',{onclick:close},['关闭']));
+  box.append(foot);
+  modal.append(box);
+  modal.onclick = (e)=>{ if(e.target===modal) close(); };
+  document.body.append(modal);
+  await reload();
+}
+bind('btnLibrary','click', openLibrary);
+
+// 任何改动都排一次「当前内容」本地存档
+const _markDirtyBase = markDirty;
+markDirty = function(v){ _markDirtyBase(v); scheduleLocalSave(); };
+
+// live recompute of the derived Lv1 line
+['initHp','initAtk','initMag','initMnd','premium','fameMax'].forEach(id=>$(id).addEventListener('input', updDerived));
+function updDerived(){
+  const bonus = $('premium').value==='true' ? {hp:600,attack:400,magic:400,mind:200} : {hp:300,attack:200,magic:200,mind:100};
+  const g = id => Number($(id).value)||0;
+  const fame = 1;   // Lv1 固定 fame=1
+  const f = (init,k)=> init + Math.trunc(bonus[k]*fame/100);
+  const lv1 = 'HP ' + f(g('initHp'),'hp') + '   ATK ' + f(g('initAtk'),'attack') +
+    '   MAGIC ' + f(g('initMag'),'magic') + '   MIND ' + f(g('initMnd'),'mind');
+  $('derivedPreview').textContent = 'Lv1 显示值（服务端会重算并要求完全一致）:  ' + lv1;
+  const hint = $('statHint');
+  if(hint){
+    const lmax = Math.max(1, Number($('levelMax').value)||80);
+    hint.textContent = '游戏里的显示：等级 ' + lmax + '（满级）时 HP ' + g('maxHp') + ' / ATK ' + g('maxAtk') +
+      ' / MAGIC ' + g('maxMag') + ' / MIND ' + g('maxMnd') + '　｜　Lv1 时 ' + lv1 +
+      '　（卡面说明里的技能数值同样按满级显示，下面效果块里填的就是满级值）';
+  }
+}
+</script>
+</body>
+</html>

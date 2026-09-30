@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>BundleTool</AssemblyName>
+    <RootNamespace>BundleTool</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <NoWarn>$(NoWarn);NU1701;CS0618</NoWarn>
+  </PropertyGroup>
+
+  <!-- ★ 需要自己提供 AssetsTools.NET 的 DLL（放到 tools\libs\，见 tools\README.md）。
+       注意：NuGet 上的 AssetsTools.NET 3.0.x **没有** BundleReplacer 这个类型（本工具要用），
+       所以这里用 DLL 引用而不是 PackageReference；用 UABEA 目录里那份就行。 -->
+  <ItemGroup>
+    <Reference Include="AssetsTools.NET">
+      <HintPath>$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="AssetsTools.NET.Texture">
+      <HintPath>$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.Texture.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- 运行时可能要用到的伴生文件；有就一起复制（没有也能编译）。 -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.Cpp2IL.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.Cpp2IL.dll')" CopyToOutputDirectory="PreserveNewest" Link="AssetsTools.NET.Cpp2IL.dll" />
+    <None Include="$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.MonoCecil.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\libs\AssetsTools.NET.MonoCecil.dll')" CopyToOutputDirectory="PreserveNewest" Link="AssetsTools.NET.MonoCecil.dll" />
+    <None Include="$(MSBuildThisFileDirectory)..\libs\Mono.Cecil.dll" Condition="Exists('$(MSBuildThisFileDirectory)..\libs\Mono.Cecil.dll')" CopyToOutputDirectory="PreserveNewest" Link="Mono.Cecil.dll" />
+    <None Include="$(MSBuildThisFileDirectory)..\libs\classdata.tpk" Condition="Exists('$(MSBuildThisFileDirectory)..\libs\classdata.tpk')" CopyToOutputDirectory="PreserveNewest" Link="classdata.tpk" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+# 依赖 / 编译产物
+node_modules/
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# 运行时生成的东西（含用户自己的数据，别提交）
+cardcomposer/cache/
+cardcomposer/tmp/
+tmp/
+*.log
+
+# 用户自己的配置与方案库（含个人路径 / 自己写的卡）
+.cardcomposer.json
+config.json
+cardcomposer/library/cards.json
+cardcomposer/library/*.json
+!cardcomposer/library/.gitkeep
+
+# 我这边打包用的中间产物
+.stage-list.json
+
+# skill-library 生成的参考数据（34MB，且是从你自己的游戏包里导出来的 —— 请自己跑一遍生成）
+tools/skill-library/out/
+
+# 系统垃圾
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 测试用的临时沙箱（跑 test-compose.js 会生成，别提交）
+cardforge-sandbox/
